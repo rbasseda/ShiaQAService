@@ -1,0 +1,37 @@
+ShiaQAService
+Copyright 2026 Reza Basseda
+
+This product includes software developed by Reza Basseda.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+--------------------------------------------------------------------------------
+THIRD-PARTY CONTENT
+--------------------------------------------------------------------------------
+
+The Apache License above covers the SOURCE CODE of this project ONLY. It does
+not grant any rights over the encyclopaedia content this software retrieves.
+
+This software downloads article text from WikiShia (https://en.wikishia.net)
+via the MediaWiki API. That text is the work of WikiShia's contributors and is
+governed by WikiShia's own terms, not by this license.
+
+No WikiShia content is distributed with this repository: the corpus and the
+built index live under `data/`, which is excluded by `.gitignore`. Running
+`shiaqa fetch` downloads that content to your own machine.
+
+As of this writing, WikiShia does not publish a machine-readable license through
+the standard MediaWiki `rightsinfo` mechanism (the API returns an empty value),
+so the terms applying to its content could not be determined programmatically.
+Before redistributing WikiShia text, or before deploying this service in any
+public or commercial setting, check the terms published on the wiki itself and
+seek permission where required.

@@ -1,0 +1,21 @@
+# Corpus, index and logs: 230+ MB of downloaded content, rebuildable with
+# `shiaqa fetch && shiaqa index`. Never commit this — see NOTICE for why.
+data/
+
+# Environments and build artefacts
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local config and OS cruft
+.env
+.DS_Store

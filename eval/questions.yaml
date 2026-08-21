@@ -1,0 +1,46 @@
+# Retrieval ground truth. `expect` lists article titles, at least one of which
+# must appear in the retrieved top-k for the question to count as answered.
+# `answer` is a string that must appear somewhere in the assembled context. It
+# is the metric that actually matters: retrieving the right *article* is not
+# enough if the chunk holding the fact never makes it into the prompt.
+#
+# Kept deliberately small and hand-checked: it exists to stop weight tuning
+# from being guesswork, not to be a benchmark.
+
+- q: "What happened at Ghadir Khumm?"
+  expect: ["Event of Ghadir", "Ghadir Khumm"]
+- q: "Who was the mother of Imam Husayn?"
+  expect: ["Imam al-Husayn b. Ali (a)"]
+  answer: "Fatima bt. Muhammad"
+- q: "Which book did al-Kulayni compile?"
+  expect: ["Muhammad b. Ya'qub al-Kulayni", "Al-Kafi (book)", "Usul al-kafi (book)"]
+- q: "What is taqiyya?"
+  expect: ["Taqiyya"]
+- q: "Why does the Shia community commemorate Ashura?"
+  expect: ["Day of Ashura'", "Uprising of Imam al-Husayn (a)", "Muharram"]
+- q: "When did the Occultation of the twelfth Imam begin?"
+  expect: ["Minor Occultation", "Major Occultation", "Occultation of Imam al-Mahdi (a)"]
+- q: "What is Nahj al-balagha?"
+  expect: ["Nahj al-balagha (book)"]
+  answer: "al-Radi"
+# Alias path: "Ali ibn Abu Talib" is one of 107 redirects to this article.
+# (Note: "Abu Turab" is *not* a redirect on this wiki, so it cannot be found.)
+- q: "Who was Ali ibn Abu Talib?"
+  expect: ["Imam Ali b. Abi Talib (a)"]
+- q: "What is Nowruz?"
+  expect: ["Nowruz"]
+- q: "When was Imam al-Rida born?"
+  expect: ["Imam Ali b. Musa al-Rida (a)"]
+  answer: "148"
+- q: "What is al-Sahifa al-Sajjadiyya?"
+  expect: ["Al-Sahifa al-Sajjadiyya (book)"]
+- q: "What is khums and who must pay it?"
+  expect: ["Khums"]
+  answer: "one fifth"
+- q: "Where did the Battle of Karbala take place?"
+  expect: ["Battle of Karbala", "Karbala"]
+  answer: "Karbala"
+- q: "Why do Shia and Sunni disagree about the succession to the Prophet?"
+  expect: ["Caliphate", "Shia Islam", "Saqifa"]
+- q: "What are the conditions for a valid marriage contract?"
+  expect: ["Marriage", "Marriage formula"]
