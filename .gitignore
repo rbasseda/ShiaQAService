@@ -16,6 +16,13 @@ __pycache__/
 .ruff_cache/
 .mypy_cache/
 
+# Editors and IDEs
+.idea/
+.vscode/
+
 # Local config and OS cruft
 .env
 .DS_Store
+
+# Local agent guidance, kept out of the public repo
+CLAUDE.md
