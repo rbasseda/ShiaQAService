@@ -260,7 +260,12 @@ class Store:
 
     def title_search(self, terms: set[str], fts_query: str,
                      pages: int, per_page: int) -> list[int]:
-        """Chunks from articles the question actually *names*.
+        """Chunk ids from articles the question names. See `title_candidates`."""
+        return self.title_candidates(terms, fts_query, pages, per_page)[0]
+
+    def title_candidates(self, terms: set[str], fts_query: str,
+                         pages: int, per_page: int) -> tuple[list[int], list[int]]:
+        """Chunks from articles the question actually *names*, and their page ranking.
 
         Recall comes from FTS over titles and redirect aliases — 35k redirects
         mean nearly every spelling, epithet and kunya a reader might type
@@ -270,9 +275,13 @@ class Store:
         enough here, because a rare word matching one alias of an unrelated
         page ("community" -> an Islamic centre) outranks the obvious article.
         Matched articles contribute their fact box and summary first.
+
+        Returns `(chunk_ids, page_ids)`. The page ranking comes back too because
+        the graph channel seeds from exactly these pages — re-running the
+        600-row recall query to rediscover them would be pure waste.
         """
         if not fts_query or not terms:
-            return []
+            return [], []
         try:
             rows = self.db.execute(
                 "SELECT rowid FROM chunks_fts WHERE chunks_fts MATCH ? "
@@ -280,9 +289,9 @@ class Store:
                 (f"{{title aliases}} : ({fts_query})",),
             ).fetchall()
         except sqlite3.OperationalError:
-            return []
+            return [], []
         if not rows:
-            return []
+            return [], []
 
         ids = [r["rowid"] for r in rows]
         marks = ",".join("?" * len(ids))
@@ -337,6 +346,40 @@ class Store:
             for pid in page_order:
                 if slot < len(by_page[pid]):
                     out.append(by_page[pid][slot]["id"])
+        return out, page_order
+
+    def page_chunks(self, page_ids: Sequence[int], per_page: int,
+                    kinds: Sequence[str] = ("infobox", "summary")) -> list[int]:
+        """Lead chunks for the given pages, round-robined so none dominates.
+
+        Fact box before summary, mirroring `title_candidates`: when an article
+        is reached indirectly, its densest statement of what it *is* is the part
+        worth spending context on.
+        """
+        if not page_ids:
+            return []
+        marks = ",".join("?" * len(page_ids))
+        kind_marks = ",".join("?" * len(kinds))
+        rows = self.db.execute(
+            f"SELECT id, page_id, kind, ordinal FROM chunks "
+            f"WHERE page_id IN ({marks}) AND kind IN ({kind_marks})",
+            [*page_ids, *kinds],
+        ).fetchall()
+
+        order = {k: i for i, k in enumerate(kinds)}
+        by_page: dict[int, list] = {}
+        for r in rows:
+            by_page.setdefault(r["page_id"], []).append(r)
+        for pid, group in by_page.items():
+            group.sort(key=lambda r: (order.get(r["kind"], len(kinds)), r["ordinal"]))
+            by_page[pid] = group[:per_page]
+
+        out: list[int] = []
+        for slot in range(per_page):
+            for pid in page_ids:
+                group = by_page.get(pid, [])
+                if slot < len(group):
+                    out.append(group[slot]["id"])
         return out
 
     def hydrate(self, scored: Sequence[tuple[int, float]],
