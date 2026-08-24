@@ -1,0 +1,51 @@
+# Relational ground truth, for measuring whether the knowledge-graph channel
+# earns its weight. Kept in a separate file from questions.yaml on purpose:
+# those 15 are the regression gate and must keep reproducing the baseline
+# (recall@6 1.00, MRR 0.933, answer-in-context 1.00) whatever happens here.
+#
+# Every question below turns on a relation between two entities rather than on
+# a passage that looks like the question — the case the flat channels are worst
+# at. Each fact was checked against `shiaqa kg show` before being written down.
+#
+# Same shape as questions.yaml: `expect` lists articles, any one of which
+# counts; `answer` is a string that must reach the assembled context.
+
+- q: "Who were the students of al-Shaykh al-Mufid?"
+  expect: ["Al-Shaykh al-Mufid"]
+  answer: "al-Sharif al-Murtada"
+
+- q: "Which sura contains the Ahl al-Dhikr verse?"
+  expect: ["Ahl al-Dhikr Verse"]
+  answer: "al-Nahl"
+
+- q: "Who wrote Waq'at Siffin?"
+  expect: ["Waq'at Siffin (book)"]
+  answer: "Nasr b. Muzahim"
+
+- q: "Who was the mother of Imam al-Rida?"
+  expect: ["Imam Ali b. Musa al-Rida (a)"]
+  answer: "Najma"
+
+- q: "Which book did al-Sharif al-Radi compile?"
+  expect: ["Al-Sharif al-Radi", "Nahj al-balagha (book)"]
+  answer: "Nahj al-balagha"
+
+- q: "Who taught al-Sharif al-Radi?"
+  expect: ["Al-Sharif al-Radi"]
+  answer: "al-Mufid"
+
+- q: "Who was the father of Imam al-Jawad?"
+  expect: ["Imam Muhammad b. Ali al-Jawad (a)", "Imam Ali b. Musa al-Rida (a)"]
+  answer: "al-Rida"
+
+- q: "Which books did al-Shaykh al-Tusi write?"
+  expect: ["Al-Shaykh al-Tusi"]
+  answer: "Tahdhib al-ahkam"
+
+- q: "Who did Ruhollah Khomeini teach?"
+  expect: ["Sayyid Ruhollah Musavi Khomeini"]
+  answer: "Motahhari"
+
+- q: "In which book is Hadith al-Manzila recorded?"
+  expect: ["Hadith al-Manzila"]
+  answer: "al-Kafi"

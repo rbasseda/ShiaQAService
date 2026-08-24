@@ -68,10 +68,20 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--k", type=int, default=6)
     ap.add_argument("--sweep", action="store_true", help="Grid-search fusion settings.")
+    ap.add_argument("--kg", action="store_true",
+                    help="Compare graph channel off vs on, on both question sets.")
+    ap.add_argument("--weight-graph", type=float, default=None,
+                    help="Graph-channel weight to test with --kg "
+                         "(default: the configured weight_graph).")
     args = ap.parse_args()
 
     cases = load_cases(Path(__file__).parent / "questions.yaml")
     store, embedder = Store(), Embedder()
+
+    if args.kg:
+        run_kg_comparison(store, embedder, cases, args)
+        return
+
     print(f"{len(cases)} questions, top_k={args.k}\n")
 
     if not args.sweep:
@@ -103,6 +113,42 @@ def main() -> None:
               f"weight_title={w} rrf_k_title={kt} title_pages={p}")
         for m in r["misses"] + r["unanswerable"]:
             print("      ", m)
+
+
+def run_kg_comparison(store: Store, embedder: Embedder, cases: list[dict], args) -> None:
+    """Graph channel off vs on, over the regression set and the relational set.
+
+    Two things matter and they are not the same thing. The 15 questions in
+    questions.yaml are the gate: the graph must not move them. The relational
+    set is the only place a graph win can show up at all, because those
+    questions turn on an edge rather than on a passage.
+    """
+    kg_cases = load_cases(Path(__file__).parent / "questions_kg.yaml")
+    kg_db = get_settings().kg_db_path
+    if not kg_db.exists():
+        print(f"No graph at {kg_db}. Run `shiaqa kg build` first.")
+        return
+
+    weight = args.weight_graph if args.weight_graph is not None \
+        else get_settings().weight_graph
+    suites = [("regression (questions.yaml)", cases),
+              ("relational (questions_kg.yaml)", kg_cases)]
+    configs = [
+        ("graph off (weight=0.0)", Settings(weight_graph=0.0)),
+        (f"graph on  (weight={weight})",
+         Settings(weight_graph=weight, kg_enabled=True)),
+    ]
+
+    for suite_name, suite in suites:
+        print(f"\n=== {suite_name} — {len(suite)} questions, top_k={args.k} ===")
+        for label, settings in configs:
+            r = score(Retriever(settings, store, embedder), suite, args.k)
+            print(f"  {label:32s} recall={r['recall']:.2f}  MRR={r['mrr']:.3f}  "
+                  f"answer-in-context={r['answerable']:.2f}")
+            for m in r["misses"]:
+                print("        MISS    :", m)
+            for m in r["unanswerable"]:
+                print("        NOANSWER:", m)
 
 
 if __name__ == "__main__":

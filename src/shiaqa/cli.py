@@ -14,6 +14,8 @@ from .config import get_settings
 from .log import get_logger
 
 app = typer.Typer(add_completion=False, help="Local RAG question answering over WikiShia.")
+kg_app = typer.Typer(add_completion=False, help="Structural knowledge graph over the corpus.")
+app.add_typer(kg_app, name="kg")
 console = Console()
 log = get_logger(__name__)
 
@@ -81,6 +83,26 @@ def status() -> None:
     table.add_row("ollama", msg)
     table.add_row("db", f"{s.db_path} ({s.db_path.stat().st_size / 1e6:.0f} MB)"
                   if s.db_path.exists() else "missing")
+
+    if s.kg_db_path.exists():
+        from .kg.store import KgStore
+        kg = KgStore(s)
+        kc = kg.counts()
+        built = kg.get_meta("built_at") or "-"
+        table.add_row("kg nodes / edges", f"{kc['nodes']} / {kc['edges']} "
+                                          f"({kc['typed_edges']} typed)")
+        table.add_row("kg links", str(kc["links"]))
+        table.add_row("kg built at", built)
+        # The graph is derived from the raw cache; if that moved on, say so
+        # rather than letting a stale graph look current.
+        newest_raw = max((p.stat().st_mtime for p in s.raw_dir.glob("*.jsonl")), default=0)
+        if newest_raw and kg.path.stat().st_mtime < newest_raw:
+            table.add_row("kg freshness", "[yellow]stale — raw cache is newer[/yellow]")
+        kg.close()
+    else:
+        table.add_row("kg", "not built (`shiaqa kg build`)")
+    table.add_row("kg in retrieval",
+                  f"weight_graph={s.weight_graph} facts={s.kg_facts_in_context}")
     console.print(table)
 
 
@@ -164,3 +186,165 @@ def serve(
 
 if __name__ == "__main__":
     app()
+
+
+# --- knowledge graph -------------------------------------------------------
+
+
+@kg_app.command("build")
+def kg_build(
+    jsonl_only: bool = typer.Option(False, "--jsonl-only",
+                                    help="Write data/kg/*.jsonl but skip data/kg.db."),
+) -> None:
+    """Extract the graph from the raw cache into data/kg/ and data/kg.db.
+
+    Reads data/raw/ only — it never opens shiaqa.db, so it cannot disturb the
+    index or the embeddings. A full rebuild takes about 15 seconds.
+    """
+    from .kg.build import build
+
+    rep = build(get_settings(), jsonl_only=jsonl_only)
+    table = Table(show_header=False, box=None)
+    for k, v in rep.extract.as_dict().items():
+        if k == "seconds":
+            continue
+        table.add_row(k.replace("_", " "), str(v))
+    for name, n in rep.files.items():
+        table.add_row(f"wrote {name}", str(n))
+    if rep.db_counts:
+        table.add_row("kg.db", ", ".join(f"{k}={v}" for k, v in rep.db_counts.items()))
+    table.add_row("elapsed", f"{rep.seconds:.1f}s")
+    console.print(table)
+
+    # A correction that has quietly stopped matching is worse than none at all:
+    # the graph looks curated and is not. Never let this scroll past silently.
+    if rep.overrides.needs_attention:
+        console.print("\n[yellow]Overrides needing attention:[/yellow]")
+        for line in rep.overrides.stale + rep.overrides.unresolved:
+            console.print(f"  [yellow]![/yellow] {line}")
+
+
+@kg_app.command("stats")
+def kg_stats(
+    top: int = typer.Option(12, "--top", help="How many rows per breakdown."),
+) -> None:
+    """Counts by class and predicate, plus the unmapped-field worklist."""
+    from .kg.build import UNMAPPED, read_jsonl
+    from .kg.store import KgStore
+
+    s = get_settings()
+    if not s.kg_db_path.exists():
+        console.print("[red]No graph yet. Run `shiaqa kg build`.[/red]")
+        raise typer.Exit(1)
+
+    kg = KgStore(s)
+    counts = kg.counts()
+    console.print(f"[bold]{counts['nodes']}[/bold] nodes, "
+                  f"[bold]{counts['edges']}[/bold] edges "
+                  f"([bold]{counts['typed_edges']}[/bold] typed), "
+                  f"[bold]{counts['links']}[/bold] links\n")
+
+    table = Table(title="entities by class", box=None)
+    table.add_column("class"); table.add_column("n", justify="right")
+    for r in kg.db.execute(
+        "SELECT class, count(*) c FROM node_classes GROUP BY class ORDER BY c DESC LIMIT ?",
+        (top,),
+    ):
+        table.add_row(r["class"], str(r["c"]))
+    console.print(table)
+
+    table = Table(title="typed edges by predicate", box=None)
+    table.add_column("predicate"); table.add_column("n", justify="right")
+    for r in kg.db.execute(
+        "SELECT p, count(*) c FROM edges WHERE p NOT IN ('instance_of','subclass_of') "
+        "GROUP BY p ORDER BY c DESC LIMIT ?", (top,),
+    ):
+        table.add_row(r["p"], str(r["c"]))
+    console.print(table)
+
+    worklist = list(read_jsonl(s.kg_dir / UNMAPPED))[:top]
+    if worklist:
+        table = Table(title="unmapped infobox fields (curation worklist)", box=None)
+        table.add_column("template"); table.add_column("field")
+        table.add_column("links", justify="right"); table.add_column("pages", justify="right")
+        for u in worklist:
+            table.add_row(u["template"], u["field"],
+                          str(u["resolved_links"]), str(u["pages"]))
+        console.print(table)
+    kg.close()
+
+
+@kg_app.command("show")
+def kg_show(
+    title: str,
+    limit: int = typer.Option(25, "--limit", "-n"),
+) -> None:
+    """Print everything the graph records about one article."""
+    from .kg.ontology import Ontology
+    from .kg.store import KgStore
+
+    s = get_settings()
+    if not s.kg_db_path.exists():
+        console.print("[red]No graph yet. Run `shiaqa kg build`.[/red]")
+        raise typer.Exit(1)
+
+    kg = KgStore(s)
+    matches = kg.find_by_label(title, 5)
+    if not matches:
+        console.print(f"[yellow]Nothing in the graph matching {title!r}.[/yellow]")
+        raise typer.Exit(1)
+
+    node = matches[0]
+    if len(matches) > 1:
+        others = ", ".join(m["label"] for m in matches[1:])
+        console.print(f"[dim]also matched: {others}[/dim]")
+
+    classes = kg.classes_of(node["id"])
+    console.print(f"\n[bold]{node['label']}[/bold]"
+                  f"{'  (' + ', '.join(classes) + ')' if classes else ''}")
+    console.print(f"[dim]{node['url'] or ''}[/dim]\n")
+
+    for line in kg.facts(node["id"], Ontology().predicates, limit):
+        console.print(f"  {line}")
+
+    cats = [r["label"] for r in kg.db.execute(
+        "SELECT n.label FROM edges e JOIN nodes n ON n.id = e.o "
+        "WHERE e.s = ? AND e.p = 'instance_of' ORDER BY n.label", (node["id"],))]
+    if cats:
+        console.print(f"\n[dim]categories: {', '.join(cats)}[/dim]")
+    kg.close()
+
+
+@kg_app.command("viz")
+def kg_viz(
+    out: str = typer.Option(None, "--out", "-o",
+                            help="Directory for the HTML (default: <data_dir>/kg/viz)."),
+    kind: str = typer.Option("both", "--kind",
+                             help="explorer | schema | both"),
+) -> None:
+    """Write self-contained HTML views of the graph.
+
+    Each file embeds the data it needs, so it opens straight from disk with no
+    server and no network — which is also what lets it be published as an
+    Artifact, where external hosts are blocked outright.
+    """
+    from pathlib import Path
+
+    from .kg import viz
+
+    s = get_settings()
+    if not s.kg_db_path.exists():
+        console.print("[red]No graph yet. Run `shiaqa kg build`.[/red]")
+        raise typer.Exit(1)
+
+    kinds = ("explorer", "schema") if kind == "both" else (kind,)
+    unknown = [k for k in kinds if k not in ("explorer", "schema")]
+    if unknown:
+        console.print(f"[red]Unknown --kind {unknown[0]!r}: use explorer, schema or both.[/red]")
+        raise typer.Exit(1)
+
+    written = viz.write(Path(out) if out else s.kg_dir / "viz", kinds, s)
+    table = Table(show_header=False, box=None)
+    for name, path in written.items():
+        table.add_row(name, f"{path}  ({path.stat().st_size / 1024:.0f} KB)")
+    console.print(table)

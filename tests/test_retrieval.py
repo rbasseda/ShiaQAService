@@ -167,3 +167,92 @@ def test_equal_title_coverage_is_broken_by_article_prominence(tmp_path):
     q = "Who was the mother of Imam Husayn?"
     ids = st.title_search(normalise_terms(q), to_fts_query(q), 4, 3)
     assert st.hydrate([(ids[0], 0.0)])[0].title == "Imam al-Husayn b. Ali (a)"
+
+
+# --- knowledge graph channel -------------------------------------------------
+
+def _kg_for(tmp_path, settings):
+    """A tiny graph over the fixture pages: Ashura -- related_event --> al-Husayn.
+
+    Written to a subdirectory so that a `Settings(data_dir=tmp_path)` still has
+    no `kg.db` of its own — that is what lets a test construct a genuinely
+    graph-less retriever for comparison.
+    """
+    from shiaqa.kg.store import KgStore
+
+    (tmp_path / "graph").mkdir(exist_ok=True)
+    kg = KgStore(settings, path=tmp_path / "graph" / "kg.db")
+    kg.init_schema()
+    kg.load(
+        [{"id": "page:1", "kind": "entity", "label": "Ashura", "page_id": 1,
+          "url": "http://x/1", "classes": []},
+         {"id": "page:3", "kind": "entity", "label": "Imam al-Husayn (a)",
+          "page_id": 3, "url": "http://x/3", "classes": []}],
+        [{"s": "page:1", "p": "related_event", "o": "page:3", "src": "infobox",
+          "field": "related events"}],
+        [],
+    )
+    return kg
+
+
+def test_graph_channel_is_silent_when_no_graph_is_built(store):
+    """A missing kg.db must degrade to plain hybrid retrieval, not raise."""
+    st, s = store
+    r = Retriever(s, st, _StubEmbedder())
+    assert not r.kg_active
+    assert r._graph_channel([1]) == []
+    assert r.search_sync("What is Ashura?", 3).hits
+
+
+def test_zero_weight_leaves_the_fused_ranking_byte_identical(store, tmp_path):
+    """The default configuration must behave exactly as if the KG did not exist.
+
+    A zero-weight channel would still inject its chunk ids into the fusion map
+    with a 0.0 score, where they can take tail slots after diversification. The
+    channel is skipped outright instead, and this pins that.
+    """
+    st, s = store
+    kg = _kg_for(tmp_path, s)
+    question = "What is Ashura?"
+
+    no_graph = Retriever(s, st, _StubEmbedder())
+    assert not no_graph.kg_active          # no kg.db under this data_dir
+    plain = no_graph.search_sync(question, 6)
+
+    zero = Retriever(Settings(data_dir=tmp_path, embed_dim=4, weight_graph=0.0),
+                     st, _StubEmbedder(), kg=kg)
+    assert zero.kg_active                  # graph attached, just unweighted
+    with_kg = zero.search_sync(question, 6)
+
+    assert [h.chunk_id for h in with_kg.hits] == [h.chunk_id for h in plain.hits]
+    assert with_kg.context == plain.context
+
+
+def test_a_weighted_graph_channel_pulls_in_a_linked_article(store, tmp_path):
+    st, s = store
+    kg = _kg_for(tmp_path, s)
+    weighted = Settings(data_dir=tmp_path, embed_dim=4, weight_graph=3.0,
+                        kg_neighbour_pages=4, kg_chunks_per_page=2)
+    r = Retriever(weighted, st, _StubEmbedder(), kg=kg)
+
+    # "Ashura" names page 1; page 3 is reachable only across the graph edge.
+    assert 3 in {h.page_id for h in r.search_sync("What is Ashura?", 6).hits}
+
+
+def test_fact_block_is_attributed_to_wikishia_in_the_context(store, tmp_path):
+    st, s = store
+    kg = _kg_for(tmp_path, s)
+    with_facts = Settings(data_dir=tmp_path, embed_dim=4, kg_facts_in_context=True)
+    res = Retriever(with_facts, st, _StubEmbedder(), kg=kg).search_sync("What is Ashura?", 6)
+
+    assert res.kg_facts
+    assert "WikiShia" in res.context
+    # The prompt forbids neutral assertion; the block must not read as our claim.
+    assert res.context.startswith("[KG]")
+
+
+class _StubEmbedder:
+    """The fixture index has no vectors, so nothing should ever call this."""
+
+    def embed_query_sync(self, text):            # pragma: no cover - guard
+        raise AssertionError("vector search must not run on a vector-less index")

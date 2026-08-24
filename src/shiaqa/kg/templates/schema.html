@@ -1,0 +1,329 @@
+<meta charset="utf-8">
+<title>WikiShia Graph Schema</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#f4f6f7; --surface:#ffffff; --surface-2:#eef2f4;
+    --ink:#14202b; --muted:#5c6b78; --line:#d9e1e6;
+    --accent:#1a5b7a; --accent-soft:#e2eef3; --gold:#8a6220; --gold-soft:#f2e7d2;
+    --serif:"Amiri", Georgia, "Times New Roman", serif;
+    --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0e161c; --surface:#16212a; --surface-2:#1d2b35;
+      --ink:#e4ebf0; --muted:#93a4b1; --line:#283743;
+      --accent:#5cb0cf; --accent-soft:#17323f; --gold:#d9a44b; --gold-soft:#33280f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0e161c; --surface:#16212a; --surface-2:#1d2b35;
+    --ink:#e4ebf0; --muted:#93a4b1; --line:#283743;
+    --accent:#5cb0cf; --accent-soft:#17323f; --gold:#d9a44b; --gold-soft:#33280f;
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-size:15.5px; line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page { max-width:1080px; margin:0 auto; padding:56px 28px 96px; }
+  h1,h2,h3 { text-wrap:balance; margin:0; }
+  h1 { font-family:var(--serif); font-size:clamp(30px,4.6vw,46px); font-weight:700; line-height:1.15; }
+  h2 {
+    font-family:var(--serif); font-size:25px; font-weight:700;
+    margin:56px 0 6px; padding-top:26px; border-top:1px solid var(--line);
+  }
+  .lede { color:var(--muted); font-size:17px; max-width:64ch; margin:14px 0 0; }
+  p { max-width:66ch; }
+  .note { color:var(--muted); font-size:14px; max-width:66ch; }
+  code, .m { font-family:var(--mono); font-size:.9em; }
+  .m { color:var(--accent); }
+
+  .stats { display:flex; flex-wrap:wrap; gap:10px; margin:30px 0 0; }
+  .stat {
+    background:var(--surface); border:1px solid var(--line); border-radius:9px;
+    padding:12px 18px; min-width:118px;
+  }
+  .stat b {
+    display:block; font-family:var(--mono); font-size:25px; font-weight:500;
+    font-variant-numeric:tabular-nums; line-height:1.2;
+  }
+  .stat span {
+    font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted);
+  }
+
+  .figure {
+    margin:26px 0 0; background:var(--surface); border:1px solid var(--line);
+    border-radius:12px; padding:10px; overflow-x:auto;
+  }
+  svg { display:block; margin:0 auto; }
+  .cls-label { font-family:var(--sans); font-size:12.5px; font-weight:600; fill:var(--ink); }
+  .cls-count { font-family:var(--mono); font-size:10px; fill:var(--muted); }
+  .arc { fill:none; stroke:var(--accent); }
+  .arc.self { stroke:var(--gold); }
+  figcaption { color:var(--muted); font-size:13.5px; margin-top:12px; max-width:66ch; }
+
+  .controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:22px 0 12px; }
+  .controls input {
+    padding:8px 11px; font:inherit; font-size:14px; background:var(--surface);
+    color:var(--ink); border:1px solid var(--line); border-radius:6px; min-width:230px;
+  }
+  .tablewrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--surface); }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th {
+    text-align:left; font-size:11px; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); padding:11px 14px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:var(--surface); cursor:pointer; user-select:none;
+    white-space:nowrap;
+  }
+  th[aria-sort] { color:var(--accent); }
+  td { padding:8px 14px; border-top:1px solid var(--line); }
+  td.n { font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; }
+  td.p { font-family:var(--mono); font-size:13px; color:var(--accent); }
+  .bar { height:5px; border-radius:3px; background:var(--accent); opacity:.55; min-width:2px; }
+  .unclassed { color:var(--muted); font-style:italic; }
+  .pill {
+    display:inline-block; font-family:var(--mono); font-size:11.5px;
+    background:var(--gold-soft); color:var(--gold); border-radius:20px;
+    padding:2px 10px; margin:0 5px 6px 0;
+  }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+</style>
+
+<div class="page">
+  <h1>What the graph can say</h1>
+  <p class="lede">
+    Every relation in the WikiShia knowledge graph, collapsed to the classes it connects.
+    This is the shape of the ontology as the corpus actually fills it — not as it was designed.
+  </p>
+
+  <div class="stats" id="stats"></div>
+
+  <h2>Class relations</h2>
+  <p class="note">
+    The strongest connections between classes. Thickness is the number of edges;
+    gold arcs are relations from a class to itself, like one scholar teaching another.
+  </p>
+  <figure class="figure">
+    <div id="diagram"></div>
+  </figure>
+  <figcaption id="diagram-caption"></figcaption>
+
+  <h2>Where the ontology is thin</h2>
+  <p class="note" id="thin-note"></p>
+  <p id="unused"></p>
+
+  <h2>Every relation</h2>
+  <div class="controls">
+    <input id="filter" type="search" placeholder="Filter by class or relation…"
+           autocomplete="off" spellcheck="false">
+    <span class="note" id="count"></span>
+  </div>
+  <div class="tablewrap">
+    <table id="triples">
+      <thead><tr>
+        <th data-k="0">Subject class</th>
+        <th data-k="1">Relation</th>
+        <th data-k="2">Object class</th>
+        <th data-k="3" style="text-align:right">Edges</th>
+        <th style="width:110px"></th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script id="schema-data" type="application/json">{{DATA}}</script>
+<script>
+(function () {
+  "use strict";
+  const D = JSON.parse(document.getElementById("schema-data").textContent);
+  const T = D.triples;
+
+  // --- summary --------------------------------------------------------------
+  const stats = [
+    [D.stats.classes, "classes"], [D.stats.predicates, "predicates"],
+    [D.stats.triples, "class relations"], [D.stats.edges, "typed edges"],
+  ];
+  const sEl = document.getElementById("stats");
+  for (const [n, label] of stats) {
+    const d = document.createElement("div"); d.className = "stat";
+    const b = document.createElement("b"); b.textContent = n.toLocaleString();
+    const s = document.createElement("span"); s.textContent = label;
+    d.append(b, s); sEl.appendChild(d);
+  }
+
+  // --- diagram --------------------------------------------------------------
+  // Only the classes that actually carry a strong relation get a seat, so the
+  // circle stays readable instead of showing every empty corner of the ontology.
+  const TOP = 40;
+  const top = T.slice(0, TOP);
+  const seats = [];
+  for (const [s, , o] of top) {
+    if (!seats.includes(s)) seats.push(s);
+    if (!seats.includes(o)) seats.push(o);
+  }
+  const sizeOf = Object.fromEntries(D.classes.map(c => [c.name, c.entities]));
+  seats.sort((a, b) => (sizeOf[b] || 0) - (sizeOf[a] || 0));
+
+  const W = 900, H = 640, cx = W / 2, cy = H / 2 + 6, R = 232;
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("width", W); svg.setAttribute("height", H);
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label",
+    "Circular diagram of the " + TOP + " strongest class-to-class relations");
+
+  const pos = {};
+  seats.forEach((name, i) => {
+    const a = (i / seats.length) * Math.PI * 2 - Math.PI / 2;
+    pos[name] = { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R, a };
+  });
+
+  const maxN = Math.max(...top.map(t => t[3]));
+  const width = n => 0.8 + (n / maxN) * 7;
+
+  for (const [s, p, o, n] of top) {
+    const A = pos[s], B = pos[o];
+    const path = document.createElementNS(NS, "path");
+    if (s === o) {
+      const r = 30 + width(n);
+      const lx = cx + Math.cos(A.a) * (R + 34), ly = cy + Math.sin(A.a) * (R + 34);
+      path.setAttribute("d",
+        `M ${A.x} ${A.y} A ${r} ${r} 0 1 1 ${lx} ${ly}`);
+      path.setAttribute("class", "arc self");
+    } else {
+      const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2;
+      const qx = cx + (mx - cx) * 0.34, qy = cy + (my - cy) * 0.34;
+      path.setAttribute("d", `M ${A.x} ${A.y} Q ${qx} ${qy} ${B.x} ${B.y}`);
+      path.setAttribute("class", "arc");
+    }
+    path.setAttribute("stroke-width", width(n));
+    // Scale opacity with weight too, so the handful of relations that carry
+    // the graph read through the bundle instead of washing out in it.
+    path.setAttribute("opacity", (0.16 + (n / maxN) * 0.5).toFixed(3));
+    const t = document.createElementNS(NS, "title");
+    t.textContent = `${s} —${p}→ ${o}  ·  ${n.toLocaleString()} edges`;
+    path.appendChild(t);
+    svg.appendChild(path);
+  }
+
+  for (const name of seats) {
+    const P = pos[name];
+    const isBucket = name === "(unclassed)" || name === "Date";
+    const g = document.createElementNS(NS, "g");
+    const c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", P.x); c.setAttribute("cy", P.y);
+    c.setAttribute("r", 7);
+    c.setAttribute("fill", isBucket ? "var(--gold)" : "var(--accent)");
+    g.appendChild(c);
+
+    const right = Math.cos(P.a) > -0.15;
+    const lx = P.x + Math.cos(P.a) * 17, ly = P.y + Math.sin(P.a) * 17;
+    const label = document.createElementNS(NS, "text");
+    label.setAttribute("x", lx); label.setAttribute("y", ly);
+    label.setAttribute("text-anchor", right ? "start" : "end");
+    label.setAttribute("class", "cls-label");
+    label.textContent = name;
+    if (isBucket) label.setAttribute("fill", "var(--gold)");
+    g.appendChild(label);
+
+    const cnt = document.createElementNS(NS, "text");
+    cnt.setAttribute("x", lx); cnt.setAttribute("y", ly + 13);
+    cnt.setAttribute("text-anchor", right ? "start" : "end");
+    cnt.setAttribute("class", "cls-count");
+    cnt.textContent = sizeOf[name] ? sizeOf[name].toLocaleString() + " entities" : "—";
+    g.appendChild(cnt);
+    svg.appendChild(g);
+  }
+  document.getElementById("diagram").appendChild(svg);
+
+  const shown = top.reduce((a, t) => a + t[3], 0);
+  document.getElementById("diagram-caption").textContent =
+    `The ${TOP} strongest relations, covering ${shown.toLocaleString()} of ` +
+    `${D.stats.edges.toLocaleString()} typed edges. ` +
+    `“(unclassed)” is an object whose article has no infobox, so the extractor ` +
+    `knows the relation but not what kind of thing sits at the other end.`;
+
+  // --- thin coverage --------------------------------------------------------
+  const unclassedEdges = T.filter(t => t[0] === "(unclassed)" || t[2] === "(unclassed)")
+                          .reduce((a, t) => a + t[3], 0);
+  const tail = T.filter(t => t[3] <= 2).length;
+  document.getElementById("thin-note").textContent =
+    `${unclassedEdges.toLocaleString()} edges (${Math.round(unclassedEdges / D.stats.edges * 100)}%) ` +
+    `touch an unclassed entity, and ${tail} of ${D.stats.triples} class relations rest on ` +
+    `two edges or fewer. Those long-tail relations are real but far too sparse to rely on. ` +
+    `These predicates are defined in the ontology and never filled by the corpus at all:`;
+
+  const uEl = document.getElementById("unused");
+  if (!D.unusedPredicates.length) {
+    uEl.className = "note"; uEl.textContent = "None — every predicate is used at least once.";
+  } else {
+    for (const p of D.unusedPredicates) {
+      const s = document.createElement("span");
+      s.className = "pill"; s.textContent = p;
+      uEl.appendChild(s);
+    }
+  }
+
+  // --- table ----------------------------------------------------------------
+  const tbody = document.querySelector("#triples tbody");
+  const filterEl = document.getElementById("filter");
+  const countEl = document.getElementById("count");
+  let sortKey = 3, sortDir = -1;
+
+  function render() {
+    const q = filterEl.value.trim().toLowerCase();
+    let rows = q ? T.filter(t => (t[0] + " " + t[1] + " " + t[2]).toLowerCase().includes(q)) : T;
+    rows = rows.slice().sort((a, b) => {
+      const x = a[sortKey], y = b[sortKey];
+      return (typeof x === "number" ? x - y : String(x).localeCompare(String(y))) * sortDir;
+    });
+    countEl.textContent = rows.length === T.length
+      ? `${T.length} relations`
+      : `${rows.length} of ${T.length} relations`;
+
+    const max = Math.max(1, ...rows.map(r => r[3]));
+    tbody.innerHTML = "";
+    const frag = document.createDocumentFragment();
+    for (const [s, p, o, n] of rows) {
+      const tr = document.createElement("tr");
+      tr.appendChild(cell(s, s === "(unclassed)" ? "unclassed" : ""));
+      const pc = cell(p, "p");
+      pc.title = D.predLabels[p] || p;
+      tr.appendChild(pc);
+      tr.appendChild(cell(o, o === "(unclassed)" ? "unclassed" : ""));
+      tr.appendChild(cell(n.toLocaleString(), "n"));
+      const bd = document.createElement("td");
+      const bar = document.createElement("div");
+      bar.className = "bar"; bar.style.width = Math.max(2, (n / max) * 100) + "%";
+      bd.appendChild(bar); tr.appendChild(bd);
+      frag.appendChild(tr);
+    }
+    tbody.appendChild(frag);
+  }
+  function cell(text, cls) {
+    const td = document.createElement("td");
+    if (cls) td.className = cls;
+    td.textContent = text; return td;
+  }
+
+  document.querySelectorAll("#triples th[data-k]").forEach(th => {
+    th.addEventListener("click", () => {
+      const k = +th.dataset.k;
+      if (k === sortKey) sortDir *= -1; else { sortKey = k; sortDir = k === 3 ? -1 : 1; }
+      document.querySelectorAll("#triples th").forEach(x => x.removeAttribute("aria-sort"));
+      th.setAttribute("aria-sort", sortDir === 1 ? "ascending" : "descending");
+      render();
+    });
+  });
+  filterEl.addEventListener("input", render);
+  render();
+})();
+</script>

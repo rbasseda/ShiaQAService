@@ -97,13 +97,20 @@ async def fetch_all(
     return results
 
 
-def load_aliases(settings: Settings | None = None) -> dict[str, list[str]]:
-    """`{target title: [alias, ...]}`."""
+def load_redirects(settings: Settings | None = None) -> dict[str, str]:
+    """`{alias: target title}` — the file as stored.
+
+    Retrieval wants the inverse (`load_aliases`), but resolving a wikilink to
+    the article it lands on needs this direction.
+    """
     s = settings or get_settings()
     path = s.raw_dir / "redirects.json"
-    if not path.exists():
-        return {}
+    return json.loads(path.read_text()) if path.exists() else {}
+
+
+def load_aliases(settings: Settings | None = None) -> dict[str, list[str]]:
+    """`{target title: [alias, ...]}`."""
     by_target: dict[str, list[str]] = {}
-    for src, dst in json.loads(path.read_text()).items():
+    for src, dst in load_redirects(settings).items():
         by_target.setdefault(dst, []).append(src)
     return by_target

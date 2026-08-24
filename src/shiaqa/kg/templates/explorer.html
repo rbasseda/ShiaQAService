@@ -1,0 +1,533 @@
+<meta charset="utf-8">
+<title>{{TITLE}}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --ground:#f4f6f7; --surface:#ffffff; --surface-2:#eef2f4;
+    --ink:#14202b; --muted:#5c6b78; --line:#d9e1e6;
+    --accent:#1a5b7a; --accent-soft:#e2eef3; --gold:#8a6220;
+    --shadow:0 1px 2px rgba(20,32,43,.06), 0 8px 24px rgba(20,32,43,.06);
+    --serif:"Amiri", Georgia, "Times New Roman", serif;
+    --sans:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0e161c; --surface:#16212a; --surface-2:#1d2b35;
+      --ink:#e4ebf0; --muted:#93a4b1; --line:#283743;
+      --accent:#5cb0cf; --accent-soft:#17323f; --gold:#d9a44b;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0e161c; --surface:#16212a; --surface-2:#1d2b35;
+    --ink:#e4ebf0; --muted:#93a4b1; --line:#283743;
+    --accent:#5cb0cf; --accent-soft:#17323f; --gold:#d9a44b;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3 { text-wrap:balance; margin:0; }
+  a { color:var(--accent); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+
+  .masthead {
+    display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+    padding:18px 24px 14px; border-bottom:1px solid var(--line);
+    background:var(--surface);
+  }
+  .masthead h1 {
+    font-family:var(--serif); font-size:26px; font-weight:700; letter-spacing:.01em;
+  }
+  .masthead .sub { color:var(--muted); font-size:13px; }
+  .masthead .sub b { font-family:var(--mono); font-weight:500; color:var(--ink); }
+
+  .app { display:grid; grid-template-columns:340px 1fr; min-height:calc(100vh - 62px); }
+  @media (max-width:860px) { .app { grid-template-columns:1fr; } }
+
+  .rail {
+    border-right:1px solid var(--line); background:var(--surface);
+    display:flex; flex-direction:column; min-width:0; max-height:calc(100vh - 62px);
+  }
+  @media (max-width:860px) {
+    .rail { max-height:none; border-right:0; border-bottom:1px solid var(--line); }
+    /* Stacked layout: cap the list so the diagram is not pushed off-screen. */
+    .results { max-height:230px; }
+  }
+
+  .searchbox { padding:16px; border-bottom:1px solid var(--line); }
+  .searchbox label {
+    display:block; font-size:11px; letter-spacing:.09em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:7px; font-weight:600;
+  }
+  input[type=search] {
+    width:100%; padding:9px 11px; font:inherit; font-size:14px;
+    background:var(--ground); color:var(--ink);
+    border:1px solid var(--line); border-radius:6px;
+  }
+  .hint { margin-top:8px; font-size:12px; color:var(--muted); }
+
+  .results { overflow-y:auto; flex:1; min-height:0; }
+  .result {
+    display:block; width:100%; text-align:left; border:0; background:none;
+    font:inherit; color:var(--ink); cursor:pointer;
+    padding:9px 16px; border-bottom:1px solid var(--line);
+  }
+  .result:hover, .result:focus-visible { background:var(--accent-soft); }
+  .result .rl { display:block; }
+  .result .rm {
+    display:block; font-size:11.5px; color:var(--muted);
+    font-family:var(--mono); margin-top:2px;
+  }
+  .result[aria-current="true"] { background:var(--accent-soft); box-shadow:inset 3px 0 0 var(--accent); }
+
+  .stage { position:relative; min-width:0; display:flex; flex-direction:column; }
+  .crumbs {
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+    padding:12px 20px; border-bottom:1px solid var(--line); background:var(--surface);
+    font-size:13px; min-height:47px;
+  }
+  .crumbs button {
+    font:inherit; font-size:12.5px; cursor:pointer; color:var(--accent);
+    background:none; border:1px solid var(--line); border-radius:5px; padding:3px 9px;
+  }
+  .crumbs button:hover { background:var(--accent-soft); }
+  .crumbs .here { font-weight:600; }
+  .crumbs .cats { color:var(--muted); font-size:12px; }
+
+  .canvas-wrap { flex:1; overflow:auto; padding:8px; }
+  svg { display:block; margin:0 auto; max-width:100%; height:auto; }
+
+  .node-label { font-family:var(--sans); font-size:12px; fill:var(--ink); }
+  .node-center-label { font-family:var(--serif); font-size:17px; font-weight:700; fill:var(--ink); }
+  .edge-label {
+    font-family:var(--mono); font-size:9.5px; fill:var(--muted);
+    letter-spacing:.02em;
+  }
+  .hitbox { cursor:pointer; }
+  .hitbox:hover .chip { stroke:var(--accent); stroke-width:2; }
+  .hitbox:hover .node-label { fill:var(--accent); }
+  .more { cursor:pointer; }
+  .more text { font-family:var(--mono); font-size:10.5px; fill:var(--accent); }
+
+  .empty {
+    max-width:52ch; margin:56px auto; text-align:center; color:var(--muted);
+    font-size:14.5px; padding:0 24px;
+  }
+  .empty strong { color:var(--ink); font-family:var(--serif); font-size:19px; display:block; margin-bottom:10px; }
+
+  .facts { border-top:1px solid var(--line); background:var(--surface); }
+  .facts h2 {
+    font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--muted);
+    padding:12px 20px 6px; font-weight:600;
+  }
+  .facts .scroll { max-height:210px; overflow:auto; padding:0 20px 14px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th { text-align:left; font-weight:600; color:var(--muted); font-size:11px;
+       letter-spacing:.06em; text-transform:uppercase; padding:5px 10px 5px 0; }
+  td { padding:5px 10px 5px 0; border-top:1px solid var(--line); vertical-align:top; }
+  td.pred { font-family:var(--mono); font-size:12px; color:var(--accent); white-space:nowrap; }
+  td.prov { font-family:var(--mono); font-size:11.5px; color:var(--muted); }
+  td .manual { color:var(--gold); font-weight:600; }
+  .linkish { background:none; border:0; padding:0; font:inherit; color:var(--accent);
+             cursor:pointer; text-align:left; }
+  .linkish:hover { text-decoration:underline; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .hitbox, .chip, .node-label { transition:fill .12s ease, stroke .12s ease; }
+  }
+</style>
+
+<header class="masthead">
+  <h1>WikiShia Graph Explorer</h1>
+  <span class="sub">
+    <b id="s-ent">0</b> entities &middot; <b id="s-edge">0</b> typed relations &middot;
+    <b id="s-conn">0</b> connected
+  </span>
+</header>
+
+<div class="app">
+  <aside class="rail">
+    <div class="searchbox">
+      <label for="q">Find an entity</label>
+      <input id="q" type="search" placeholder="al-Kulayni, Karbala, Sura al-Nahl…"
+             autocomplete="off" spellcheck="false">
+      <p class="hint" id="hint">Diacritics are ignored — “Husayn” finds “Ḥusayn”.</p>
+    </div>
+    <div class="results" id="results"></div>
+  </aside>
+
+  <main class="stage">
+    <div class="crumbs" id="crumbs"></div>
+    <div class="canvas-wrap" id="canvas"></div>
+    <div class="facts" id="facts" hidden>
+      <h2>Relations, with provenance</h2>
+      <div class="scroll"><table id="facts-table"></table></div>
+    </div>
+  </main>
+</div>
+
+<script id="graph-data" type="application/json">{{DATA}}</script>
+<script>
+(function () {
+  "use strict";
+  const D = JSON.parse(document.getElementById("graph-data").textContent);
+  const N = D.nodes, E = D.edges;
+
+  document.getElementById("s-ent").textContent = D.stats.entities.toLocaleString();
+  document.getElementById("s-edge").textContent = D.stats.edges.toLocaleString();
+  document.getElementById("s-conn").textContent = D.stats.connected.toLocaleString();
+
+  // --- adjacency, built once -------------------------------------------------
+  const adj = new Map();
+  function push(i, rec) {
+    let a = adj.get(i); if (!a) { a = []; adj.set(i, a); } a.push(rec);
+  }
+  for (const [s, p, o, f, c] of E) {
+    push(s, { dir: 1, p, other: o, f, c });
+    push(o, { dir: -1, p, other: s, f, c });
+  }
+
+  // The wiki often states one fact from both ends: al-Kulayni's `works` field
+  // names al-Kafi, and al-Kafi's `author` field names al-Kulayni. Two real
+  // edges, one relationship — so an entity would otherwise show the same
+  // neighbour under both `authored \u2192` and `\u2190 authored_by`. Keep the
+  // outgoing statement, which reads the way the page is about to say it.
+  for (const [i, recs] of adj) {
+    const outgoing = new Set();
+    for (const r of recs) if (r.dir === 1) outgoing.add(r.p + ":" + r.other);
+    adj.set(i, recs.filter(r => {
+      if (r.dir === 1) return true;
+      const inv = D.predInverse[r.p];
+      return inv < 0 || !outgoing.has(inv + ":" + r.other);
+    }));
+  }
+
+  // Diacritic-insensitive, matching how the index itself tokenises.
+  // Escaped, not literal: the combining-diacritic range must survive being
+  // written to disk and served without a charset, and a mangled character
+  // class silently becomes an invalid regex.
+  const fold = t => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                     .replace(/[\u2019']/g, "").toLowerCase();
+  const folded = N.map(n => fold(n[0]));
+  const connected = new Set(D.connected);
+
+  const CLASS_OF = i => (D.nodeClasses[i] || []).map(c => D.classNames[c]);
+  const wikiUrl = label => D.viewBase + encodeURIComponent(label.replace(/ /g, "_"));
+
+  // --- search ---------------------------------------------------------------
+  const qEl = document.getElementById("q");
+  const resultsEl = document.getElementById("results");
+  let current = null;
+
+  function search(term) {
+    const q = fold(term.trim());
+    const out = [];
+    if (!q) {
+      // Seed with the best-connected entities so the page is never empty.
+      const byDeg = [...connected].sort((a, b) =>
+        (adj.get(b) || []).length - (adj.get(a) || []).length);
+      for (const i of byDeg.slice(0, 40)) out.push(i);
+      return out;
+    }
+    for (let i = 0; i < N.length; i++) {
+      if (N[i][1] === 1) continue;                    // categories are not destinations
+      const at = folded[i].indexOf(q);
+      if (at >= 0) out.push([at, folded[i].length, i]);
+    }
+    out.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    return out.slice(0, 60).map(r => r[2]);
+  }
+
+  function renderResults(list) {
+    resultsEl.innerHTML = "";
+    if (!list.length) {
+      const p = document.createElement("p");
+      p.className = "hint"; p.style.padding = "14px 16px";
+      p.textContent = "No entity matches that.";
+      resultsEl.appendChild(p); return;
+    }
+    const frag = document.createDocumentFragment();
+    for (const i of list) {
+      const b = document.createElement("button");
+      b.className = "result"; b.type = "button";
+      if (i === current) b.setAttribute("aria-current", "true");
+      const l = document.createElement("span"); l.className = "rl"; l.textContent = N[i][0];
+      const m = document.createElement("span"); m.className = "rm";
+      const cls = CLASS_OF(i), deg = (adj.get(i) || []).length;
+      m.textContent = (cls.length ? cls.join(", ") + " · " : "") +
+                      (deg ? deg + " relation" + (deg === 1 ? "" : "s") : "no relations");
+      b.append(l, m);
+      b.addEventListener("click", () => go(i));
+      frag.appendChild(b);
+    }
+    resultsEl.appendChild(frag);
+  }
+
+  qEl.addEventListener("input", () => renderResults(search(qEl.value)));
+
+  // --- history --------------------------------------------------------------
+  const trail = [];
+  function go(i, viaTrail) {
+    if (current !== null && !viaTrail && current !== i) trail.push(current);
+    current = i;
+    draw(i); renderCrumbs(); renderFacts(i);
+    renderResults(search(qEl.value));
+  }
+
+  function renderCrumbs() {
+    const c = document.getElementById("crumbs");
+    c.innerHTML = "";
+    if (trail.length) {
+      const back = document.createElement("button");
+      back.type = "button";
+      back.textContent = "← " + N[trail[trail.length - 1]][0];
+      back.addEventListener("click", () => { const p = trail.pop(); go(p, true); });
+      c.appendChild(back);
+    }
+    const here = document.createElement("span");
+    here.className = "here"; here.textContent = N[current][0];
+    c.appendChild(here);
+
+    const cls = CLASS_OF(current);
+    if (cls.length) {
+      const s = document.createElement("span");
+      s.className = "cats"; s.textContent = cls.join(" · ");
+      c.appendChild(s);
+    }
+    const a = document.createElement("a");
+    a.href = wikiUrl(N[current][0]); a.target = "_blank"; a.rel = "noopener noreferrer";
+    a.textContent = "open on WikiShia ↗"; a.style.fontSize = "12px";
+    a.style.marginLeft = "auto";
+    c.appendChild(a);
+
+    const cats = (D.cats[current] || []).map(i => N[i][0]);
+    if (cats.length) {
+      const s = document.createElement("span");
+      s.className = "cats"; s.style.flexBasis = "100%";
+      s.textContent = "categories: " + cats.join(", ");
+      c.appendChild(s);
+    }
+  }
+
+  // --- ego layout -----------------------------------------------------------
+  // Two columns, not a radial fan. Article titles here are long ("Imam Ali b.
+  // al-Husayn al-Sajjad (a)"), and wide text chips on a circle collide no
+  // matter how the angles are budgeted. Giving every neighbour its own row
+  // makes overlap structurally impossible, and grouping by relation puts the
+  // answer to "who taught him?" in one block instead of scattered around a dial.
+  const PER_GROUP = 8;
+  const COL_W = 300, CENTER_W = 190, GAP = 46, CHIP_H = 32, CHIP_GAP = 7;
+  const HEAD_H = 26, GROUP_GAP = 16, PAD = 26;
+  const expanded = new Set();
+
+  function draw(i) {
+    const wrap = document.getElementById("canvas");
+    wrap.innerHTML = "";
+    const nbrs = adj.get(i) || [];
+
+    if (!nbrs.length) {
+      const d = document.createElement("div");
+      d.className = "empty";
+      const strong = document.createElement("strong");
+      strong.textContent = N[i][0];
+      d.appendChild(strong);
+      d.appendChild(document.createTextNode(
+        "This article carries no infobox, so the structural pass found no typed " +
+        "relations for it. It is in the graph as a node, with its categories, but " +
+        "there is nothing else to draw. About half the corpus is like this."));
+      wrap.appendChild(d);
+      return;
+    }
+
+    const groups = new Map();
+    for (const r of nbrs) {
+      const k = r.dir + ":" + r.p;
+      let g = groups.get(k);
+      if (!g) { g = { key: k, dir: r.dir, p: r.p, items: [] }; groups.set(k, g); }
+      g.items.push(r);
+    }
+    const all = [...groups.values()].sort((a, b) => b.items.length - a.items.length);
+    const right = all.filter(g => g.dir === 1);    // this entity -> other
+    const left  = all.filter(g => g.dir === -1);   // other -> this entity
+
+    const heightOf = col => PAD + col.reduce((a, g) => {
+      const n = visible(g);
+      return a + HEAD_H + n * (CHIP_H + CHIP_GAP) +
+             (n < g.items.length ? 22 : 0) + GROUP_GAP;
+    }, 0);
+    const W = COL_W * 2 + CENTER_W + GAP * 2;
+    const H = Math.max(heightOf(left), heightOf(right), 260) + PAD;
+    const cx = W / 2, cy = H / 2;
+
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H,
+                            role: "img", "aria-label": "Relations of " + N[i][0] });
+
+    layColumn(svg, left,  PAD, heightOf(left),  H, "end",   cx, cy);
+    layColumn(svg, right, W - PAD - COL_W, heightOf(right), H, "start", cx, cy);
+
+    const c = el("g");
+    c.appendChild(el("rect", {
+      x: cx - CENTER_W / 2, y: cy - 34, width: CENTER_W, height: 68, rx: 12,
+      fill: "var(--accent-soft)", stroke: "var(--accent)", "stroke-width": 2
+    }));
+    appendWrapped(c, N[i][0], cx, cy, CENTER_W - 22, 15, "node-center-label", 3);
+    svg.appendChild(c);
+    wrap.appendChild(svg);
+  }
+
+  function visible(g) {
+    return expanded.has(g.key) ? g.items.length : Math.min(g.items.length, PER_GROUP);
+  }
+
+  function layColumn(svg, col, x, colH, H, anchor, cx, cy) {
+    if (!col.length) return;
+    let y = (H - colH) / 2 + PAD;
+    const inner = anchor === "end" ? x + COL_W : x;   // edge facing the centre
+
+    for (const g of col) {
+      const n = visible(g);
+      const labelX = anchor === "end" ? x + COL_W : x;
+      svg.appendChild(el("text", {
+        x: labelX, y: y + 12, "text-anchor": anchor, class: "edge-label"
+      }, (g.dir === -1 ? "\u2190 " : "") + D.preds[g.p] + (g.dir === 1 ? " \u2192" : "")));
+      y += HEAD_H;
+
+      for (const r of g.items.slice(0, n)) {
+        const cyChip = y + CHIP_H / 2;
+        svg.appendChild(el("line", {
+          x1: inner, y1: cyChip, x2: cx + (anchor === "end" ? -CENTER_W / 2 : CENTER_W / 2),
+          y2: cy, stroke: "var(--line)", "stroke-width": 1.2,
+          "stroke-dasharray": g.dir === -1 ? "4 3" : null
+        }));
+        drawChip(svg, x, y, r);
+        y += CHIP_H + CHIP_GAP;
+      }
+
+      if (n < g.items.length) {
+        const more = el("g", { class: "more", tabindex: "0", role: "button" });
+        more.appendChild(el("text", {
+          x: anchor === "end" ? x + COL_W : x, y: y + 12, "text-anchor": anchor
+        }, "+" + (g.items.length - n) + " more"));
+        const open = () => { expanded.add(g.key); draw(current); };
+        more.addEventListener("click", open);
+        more.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
+        svg.appendChild(more);
+        y += 22;
+      }
+      y += GROUP_GAP;
+    }
+  }
+
+  function drawChip(svg, x, y, rec) {
+    const idx = rec.other;
+    const label = N[idx][0];
+    const isDate = N[idx][1] === 2;
+    const g = el("g", { class: "hitbox", tabindex: isDate ? null : "0",
+                        role: isDate ? null : "button" });
+    g.appendChild(el("rect", {
+      class: "chip", x, y, width: COL_W, height: CHIP_H, rx: 7,
+      fill: "var(--surface)", stroke: isDate ? "var(--gold)" : "var(--line)",
+      "stroke-width": 1.4
+    }));
+    appendWrapped(g, label, x + COL_W / 2, y + CHIP_H / 2, COL_W - 20, 11.5,
+                  "node-label", 2);
+    g.appendChild(el("title", {}, label + "  \u00b7  " + D.preds[rec.p] +
+      (D.fields[rec.f] ? "  (infobox field: " + D.fields[rec.f] + ")" : "") +
+      "  \u00b7  source: " + D.srcs[rec.c]));
+    if (!isDate) {
+      const open = () => go(idx);
+      g.addEventListener("click", open);
+      g.addEventListener("keydown", e => { if (e.key === "Enter") open(); });
+    }
+    svg.appendChild(g);
+  }
+
+  // Wrap on a pixel budget rather than a character count, so a title of wide
+  // letters does not overrun a chip that a narrow one fits.
+  function appendWrapped(parent, text, x, y, maxPx, size, cls, maxLines) {
+    const perChar = size * 0.55;
+    const max = Math.max(6, Math.floor(maxPx / perChar));
+    const words = text.split(" ");
+    const lines = []; let line = "";
+    for (const w of words) {
+      if ((line + " " + w).trim().length > max && line) { lines.push(line); line = w; }
+      else line = (line + " " + w).trim();
+    }
+    if (line) lines.push(line);
+    const use = lines.slice(0, maxLines);
+    if (lines.length > maxLines) {
+      use[maxLines - 1] = use[maxLines - 1].slice(0, max - 1) + "\u2026";
+    }
+    const lh = size + 2.5;
+    const start = y - (use.length - 1) * lh / 2 + size * 0.35;
+    use.forEach((l, k) => {
+      parent.appendChild(el("text", {
+        x, y: start + k * lh, "text-anchor": "middle", class: cls
+      }, l));
+    });
+  }
+
+  // --- fact table -----------------------------------------------------------
+  function renderFacts(i) {
+    const box = document.getElementById("facts");
+    const t = document.getElementById("facts-table");
+    const nbrs = adj.get(i) || [];
+    if (!nbrs.length) { box.hidden = true; return; }
+    box.hidden = false;
+    t.innerHTML = "";
+    const head = el("tr");
+    ["Relation", "Entity", "From"].forEach(h => head.appendChild(el("th", {}, h)));
+    t.appendChild(head);
+    for (const r of nbrs) {
+      const tr = el("tr");
+      const pd = el("td", { class: "pred" },
+        (r.dir === -1 ? "← " : "") + D.preds[r.p]);
+      const td = el("td");
+      const b = document.createElement("button");
+      b.className = "linkish"; b.type = "button"; b.textContent = N[r.other][0];
+      if (N[r.other][1] !== 2) b.addEventListener("click", () => go(r.other));
+      else b.disabled = true;
+      td.appendChild(b);
+      const prov = el("td", { class: "prov" });
+      if (D.srcs[r.c] === "manual") {
+        prov.appendChild(el("span", { class: "manual" }, "manual override"));
+      } else {
+        prov.textContent = D.fields[r.f] ? D.srcs[r.c] + " · " + D.fields[r.f]
+                                         : D.srcs[r.c];
+      }
+      tr.append(pd, td, prov);
+      t.appendChild(tr);
+    }
+  }
+
+  // --- helpers --------------------------------------------------------------
+  function el(name, attrs, text) {
+    const NS = "http://www.w3.org/2000/svg";
+    const svgTags = new Set(["svg","g","circle","rect","line","text","title","path"]);
+    const n = svgTags.has(name) ? document.createElementNS(NS, name)
+                                : document.createElement(name);
+    for (const k in (attrs || {})) {
+      if (attrs[k] === null || attrs[k] === undefined) continue;
+      n.setAttribute(k, attrs[k]);
+    }
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+  function esc(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
+
+  // --- boot -----------------------------------------------------------------
+  renderResults(search(""));
+  // Entity-only: 133 labels are carried by both an article and a category
+  // ("Kufa" is a place and a category), and the category sorts first.
+  const seed = N.findIndex(n => n[1] === 0 && n[0] === "Muhammad b. Ya'qub al-Kulayni");
+  go(seed >= 0 ? seed : D.connected[0]);
+})();
+</script>
