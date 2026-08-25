@@ -119,6 +119,63 @@ class Settings(BaseSettings):
     kg_facts_in_context: bool = False
     kg_facts_max: int = 12
 
+    # ---- knowledge graph: multi-hop ---------------------------------------
+    # 1 means today's behaviour exactly: `_graph_channel` calls
+    # `KgStore.neighbour_pages` and no path machinery runs at all. The two
+    # branches are deliberately not equivalent — `paths.expand` applies hub
+    # suppression and refuses to travel through a place, `neighbour_pages` does
+    # neither — so keeping the one-hop case on the old call is what makes
+    # "hops=1 is byte-identical" a fact rather than a hope.
+    # Raised to 2 on the evidence of `eval/run_eval.py --k 6 --hops`, against a
+    # rule fixed before the run: the regression and relational sets must not move
+    # at all, and the multi-hop set must gain at least two questions on
+    # answer-in-*excerpts* (the metric that excludes the graph blocks, so a chain
+    # cannot satisfy it by restating the answer).
+    #
+    #   regression   1.00 / 0.933 / 1.00  ->  identical
+    #   relational   1.00 / 0.950 / 0.90  ->  identical
+    #   multi-hop    answer-in-context 0.33 -> 0.75, in-excerpts 0.33 -> 0.50
+    #   median context tokens 1156 -> 1208
+    #
+    # Read that honestly: most of the gain is the chain block putting the composed
+    # relation in the prompt. The retrieval gain is real but smaller (+2 of 12 on
+    # in-excerpts), and recall@6 barely moves (0.00 -> 0.08) because the far
+    # article still rarely wins a top-6 slot — the seed article takes three of the
+    # six under `max_chunks_per_page`, and nothing here ranks a relation by
+    # whether the question actually asked about it. Do not tune `weight_graph`
+    # against the answer-in-context figure; it is not measuring the channel.
+    kg_max_hops: int = 2
+    # Frontier cap per level. Traversal reads edges in *both* directions, so the
+    # fan-out that matters is total degree: max 382 on this corpus (Medina), 92
+    # nodes above 25. An unbeamed two-hop expansion from four seeds reaches
+    # ~1,200 nodes for ~20 ms — affordable, but far too many to rank into six
+    # slots. The beam is a precision device, not a performance one.
+    kg_beam_width: int = 24
+    kg_path_limit: int = 12
+    # A node above this may end a path but never continue one. This is the guard
+    # a predicate blocklist cannot provide: the edges into the biggest hubs are
+    # `taught_by` and `companion_of`, exactly the relations multi-hop questions
+    # turn on, so they can never be refused by name.
+    kg_hub_degree_max: int = 40
+    kg_connect_max_hops: int = 3
+    # Unlike `kg_facts_in_context`, this defaults on. A facts block mostly
+    # restates articles the title channel already retrieved; a chain carries a
+    # relation that exists in *no* chunk, because it is assembled from two
+    # different articles' infoboxes. Emitted only for paths of two hops or more,
+    # so it is inert whenever `kg_max_hops` is 1.
+    kg_chains_in_context: bool = True
+    kg_chains_max: int = 4
+
+    # ---- opt-in question decomposition -----------------------------------
+    # Off by default because it is the only part of multi-hop that costs model
+    # calls: one to split the question, one to answer it, so roughly 20 s on
+    # llama3.2:3b and 35 s on qwen2.5:7b against 14 s and 27 s for a plain
+    # answer. The graph path above handles anything the infoboxes already
+    # relate; this is for questions no typed edge covers.
+    decompose: bool = False
+    decompose_max_parts: int = 3
+    decompose_num_predict: int = 160
+
     def gen_model(self, profile: str | None = None) -> str:
         profile = (profile or self.gen_default_profile).lower()
         if profile in ("fast", "small", "llama"):

@@ -1,0 +1,84 @@
+# Questions that need two typed hops, not one.
+#
+# `questions_kg.yaml` is relational but single-hop by construction: `expect`
+# names the seed article and `answer` is a label one edge away. These are the
+# next step out, and the design rule is what makes them measure anything at all:
+#
+#   `expect` names ONLY the far article — the one reachable at two hops and not
+#   at one.
+#
+# Naming the seed as well would make recall@6 read 1.00 at hops=1 and hops=2
+# alike, because `score()` takes any match in `expect` and the title channel
+# finds the seed at rank 1. The question would be blind to the feature it exists
+# to test. Every entry below was checked against `data/kg.db`: the far article is
+# indexed, carries the answer string in its own chunks, and is NOT one hop from
+# the seed.
+#
+# Two entries are marked `shape: connect`. Those cannot move recall: the middle
+# of a length-two route is one hop from both endpoints by definition, so it is
+# already reachable at hops=1 once the question names both articles. What they
+# test is the chain block — whether the composed relation reaches the prompt at
+# all. Read them against answer-in-context, not against answer-in-excerpts.
+
+- q: "Who taught the teacher of al-Sharif al-Radi?"
+  expect: ["Al-Shaykh al-Saduq"]
+  answer: "al-Saduq"
+  hops: 2
+
+- q: "Who taught the compiler of Nahj al-balagha?"
+  expect: ["Al-Shaykh al-Mufid"]
+  answer: "al-Mufid"
+  hops: 2
+
+- q: "Who taught the compiler of al-Kafi?"
+  expect: ["Ali b. Ibrahim al-Qummi"]
+  answer: "Ali b. Ibrahim"
+  hops: 2
+
+- q: "Who was the teacher of the teacher of al-Shaykh al-Tusi?"
+  expect: ["Al-Shaykh al-Saduq"]
+  answer: "al-Saduq"
+  hops: 2
+
+- q: "What did the teacher of al-Sharif al-Murtada write?"
+  expect: ["Kamal al-din wa tamam al-ni'ma (book)"]
+  answer: "Kamal al-din"
+  hops: 2
+
+- q: "Who taught the author of Wasa'il al-Shi'a?"
+  expect: ["Al-Hasan b. Zayn al-Din al-Amili"]
+  answer: "Zayn al-Din"
+  hops: 2
+
+- q: "Who taught the author of Bihar al-anwar?"
+  expect: ["Mulla Muhsin Fayd Kashani"]
+  answer: "Fayd Kashani"
+  hops: 2
+
+- q: "Who else did the teacher of al-Sharif al-Radi teach?"
+  expect: ["Al-Shaykh al-Tusi"]
+  answer: "al-Tusi"
+  hops: 2
+
+- q: "Which book did the teacher of al-Shaykh al-Tusi write?"
+  expect: ["Fadakiyya Sermon"]
+  answer: "Fadakiyya"
+  hops: 2
+
+- q: "Who taught the teacher of Ibn Qulawayh al-Qummi?"
+  expect: ["Al-Shaykh al-Saduq"]
+  answer: "al-Saduq"
+  hops: 2
+
+# The two `connect` entries: the answer is the article joining the two the
+# question names, so retrieval reaches it at one hop either way. Only the chain
+# block can state the composed relation.
+- q: "How were al-Shaykh al-Saduq and al-Shaykh al-Tusi connected?"
+  expect: ["Al-Shaykh al-Mufid"]
+  answer: "al-Mufid"
+  shape: connect
+
+- q: "What links Nahj al-balagha and al-Shaykh al-Mufid?"
+  expect: ["Al-Sharif al-Radi"]
+  answer: "al-Radi"
+  shape: connect

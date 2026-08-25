@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import itertools
+import statistics
 import re
 import sys
 from pathlib import Path
@@ -36,15 +37,37 @@ def load_cases(path: Path) -> list[dict]:
     return cases
 
 
+# Blocks the retriever prepends to the context that are not retrieved passages.
+KG_BLOCK_TAGS = ("[KG]", "[KG-PATH]")
+
+
+def excerpts_only(context: str) -> str:
+    """The context minus the graph blocks.
+
+    Without this, answer-in-context stops measuring anything once chains are
+    enabled: a chain block that states "al-Radi was taught by al-Mufid, who was
+    taught by al-Saduq" trivially satisfies a search for "al-Saduq" in the
+    context. That is not cheating — putting the composed relation in the prompt
+    is the whole feature — but it cannot be the *only* number, or a large win
+    would be reported that is purely definitional. Scoring both, and reading the
+    gap, separates "we retrieved the right passage" from "we asserted the fact".
+    """
+    return "\n\n".join(b for b in context.split("\n\n")
+                        if not b.startswith(KG_BLOCK_TAGS))
+
+
 def score(retriever: Retriever, cases: list[dict], k: int) -> dict:
     hits = 0
     rr = 0.0
     answerable = 0
+    in_excerpts = 0
     n_answer = 0
+    tokens: list[int] = []
     misses: list[str] = []
     unanswerable: list[str] = []
     for case in cases:
         res = retriever.search_sync(case["q"], k)
+        tokens.append(res.context_tokens)
         titles = [h.title for h in res.hits]
         rank = next((i for i, t in enumerate(titles, 1) if t in case["expect"]), None)
         if rank:
@@ -54,13 +77,18 @@ def score(retriever: Retriever, cases: list[dict], k: int) -> dict:
             misses.append(case["q"])
         if "answer" in case:
             n_answer += 1
-            if case["answer"].lower() in res.context.lower():
+            needle = case["answer"].lower()
+            if needle in res.context.lower():
                 answerable += 1
             else:
                 unanswerable.append(f"{case['q']}  (expected \"{case['answer']}\" in context)")
+            if needle in excerpts_only(res.context).lower():
+                in_excerpts += 1
     n = len(cases)
     return {"recall": hits / n, "mrr": rr / n,
             "answerable": answerable / n_answer if n_answer else 0.0,
+            "answerable_excerpts": in_excerpts / n_answer if n_answer else 0.0,
+            "median_tokens": statistics.median(tokens) if tokens else 0,
             "misses": misses, "unanswerable": unanswerable}
 
 
@@ -70,6 +98,8 @@ def main() -> None:
     ap.add_argument("--sweep", action="store_true", help="Grid-search fusion settings.")
     ap.add_argument("--kg", action="store_true",
                     help="Compare graph channel off vs on, on both question sets.")
+    ap.add_argument("--hops", action="store_true",
+                    help="Compare kg_max_hops=1 vs 2 across all three sets.")
     ap.add_argument("--weight-graph", type=float, default=None,
                     help="Graph-channel weight to test with --kg "
                          "(default: the configured weight_graph).")
@@ -77,6 +107,10 @@ def main() -> None:
 
     cases = load_cases(Path(__file__).parent / "questions.yaml")
     store, embedder = Store(), Embedder()
+
+    if args.hops:
+        run_hop_comparison(store, embedder, cases, args)
+        return
 
     if args.kg:
         run_kg_comparison(store, embedder, cases, args)
@@ -113,6 +147,44 @@ def main() -> None:
               f"weight_title={w} rrf_k_title={kt} title_pages={p}")
         for m in r["misses"] + r["unanswerable"]:
             print("      ", m)
+
+
+def run_hop_comparison(store: Store, embedder: Embedder, cases: list[dict],
+                       args) -> None:
+    """One hop vs two, across the regression, relational and multi-hop sets.
+
+    Reports answer-in-context twice: over the whole prompt context, and over the
+    retrieved passages alone. The first is what the model sees; the second is
+    what retrieval actually found. When they diverge, the chain block is carrying
+    the answer and the graph channel is unmoved — a real result, but a different
+    one, and not something to tune `weight_graph` against.
+    """
+    kg_cases = load_cases(Path(__file__).parent / "questions_kg.yaml")
+    mh_cases = load_cases(Path(__file__).parent / "questions_multihop.yaml")
+    kg_db = get_settings().kg_db_path
+    if not kg_db.exists():
+        print(f"No graph at {kg_db}. Run `shiaqa kg build` first.")
+        return
+
+    suites = [("regression (questions.yaml)", cases),
+              ("relational (questions_kg.yaml)", kg_cases),
+              ("multi-hop (questions_multihop.yaml)", mh_cases)]
+    configs = [
+        ("1 hop ", Settings(kg_enabled=True, kg_max_hops=1)),
+        ("2 hops", Settings(kg_enabled=True, kg_max_hops=2)),
+    ]
+    for name, suite in suites:
+        print(f"\n=== {name} — {len(suite)} questions, top_k={args.k} ===")
+        for label, s in configs:
+            r = score(Retriever(s, store, embedder), suite, args.k)
+            print(f"  {label}  recall={r['recall']:.2f}  MRR={r['mrr']:.3f}  "
+                  f"answer-in-context={r['answerable']:.2f}  "
+                  f"in-excerpts={r['answerable_excerpts']:.2f}  "
+                  f"tokens={r['median_tokens']:.0f}")
+            for m in r["misses"]:
+                print("        MISS    :", m)
+            for m in r["unanswerable"]:
+                print("        NOANSWER:", m)
 
 
 def run_kg_comparison(store: Store, embedder: Embedder, cases: list[dict], args) -> None:

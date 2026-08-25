@@ -118,3 +118,70 @@ def test_dates_are_not_offered_as_neighbour_pages(kg):
 def test_reset_empties_the_graph(kg):
     kg.reset()
     assert not kg.is_populated
+
+
+# --- batched reads ----------------------------------------------------------
+# `edges_from` replaced a per-node query pair plus a `node()` lookup per edge.
+# The old shape is what the four `neighbour_pages` tests above pin; these pin
+# the new one, so a future change cannot quietly break either.
+
+def test_edges_from_returns_what_edges_of_returns_for_every_node(kg):
+    for row in kg.db.execute("SELECT id FROM nodes"):
+        nid = row["id"]
+        batched = kg.edges_from([nid])[nid]
+        assert batched == kg.edges_of(nid)
+
+
+def test_edges_from_carries_the_page_id_from_the_join(kg):
+    """The field that removes the per-edge `node()` lookup from traversal."""
+    edges = kg.edges_from(["page:1"])["page:1"]
+    by_other = {e["other"]: e for e in edges}
+    assert by_other["page:2"]["page_id"] == 2
+    assert by_other["date:ah:0329"]["page_id"] is None
+
+
+def test_edges_from_covers_every_node_asked_for_even_the_isolated_ones(kg):
+    out = kg.edges_from(["page:4", "nonexistent"])
+    assert set(out) == {"page:4", "nonexistent"}
+    assert out["nonexistent"] == []
+
+
+def test_edge_order_is_by_predicate_not_by_row_insertion(kg):
+    """Ties on priority decide which neighbours survive a beam.
+
+    The old single-node queries resolved them by whatever the `edges_s(s, p)`
+    index happened to yield. Stating the order makes it a contract.
+    """
+    # Priority tier first; within a tier, outbound before inbound; within a
+    # direction, by predicate. `died_on` is untiered and so sorts last.
+    assert [(e["p"], e["dir"]) for e in kg.edges_of("page:1")] == [
+        ("authored", "out"), ("taught_by", "out"),
+        ("authored_by", "in"), ("died_on", "out"),
+    ]
+
+
+def test_edges_from_handles_a_batch_over_the_sqlite_variable_limit(kg):
+    ids = [f"page:{i}" for i in range(1500)] + ["page:1"]
+    out = kg.edges_from(ids)
+    assert len(out) == 1500
+    assert out["page:1"] == kg.edges_of("page:1")
+
+
+def test_degrees_counts_both_directions(kg):
+    assert kg.degrees(["page:1"])["page:1"] == len(kg.edges_of("page:1"))
+    assert kg.degrees(["page:2"])["page:2"] == len(kg.edges_of("page:2"))
+
+
+def test_degrees_reports_zero_rather_than_omitting_an_isolated_node(kg):
+    assert kg.degrees(["cat:Faqihs", "nope"]) == {"cat:Faqihs": 0, "nope": 0}
+
+
+def test_degrees_ignores_taxonomy_edges(kg):
+    """`instance_of` is scaffolding; it must not inflate a hub check."""
+    assert kg.degrees(["cat:Faqihs"])["cat:Faqihs"] == 0
+
+
+def test_classes_for_matches_classes_of(kg):
+    for row in kg.db.execute("SELECT id FROM nodes"):
+        nid = row["id"]
+        assert kg.classes_for([nid])[nid] == kg.classes_of(nid)
