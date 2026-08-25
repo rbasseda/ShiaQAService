@@ -102,7 +102,9 @@ def status() -> None:
     else:
         table.add_row("kg", "not built (`shiaqa kg build`)")
     table.add_row("kg in retrieval",
-                  f"weight_graph={s.weight_graph} facts={s.kg_facts_in_context}")
+                  f"weight_graph={s.weight_graph} hops={s.kg_max_hops} "
+                  f"chains={s.kg_chains_in_context} "
+                  f"facts={s.kg_facts_in_context}")
     console.print(table)
 
 
@@ -119,6 +121,21 @@ def search(
     if not res.hits:
         console.print("[yellow]no matches[/]")
         raise typer.Exit(1)
+    if res.kg_chains:
+        console.print("\n[bold]reasoning chain[/]")
+        for line, path in zip(res.kg_chains, res.kg_paths):
+            console.print(f"  → {line}")
+            if path is not None:
+                trail = " -> ".join(
+                    f"{st.p}{'' if st.direction == 'out' else ' (rev)'}"
+                    for st in path.steps)
+                console.print(f"    [dim]via {trail}[/]")
+        console.print()
+    if res.kg_facts:
+        console.print("[bold]graph facts[/]")
+        for f in res.kg_facts:
+            console.print(f"  • {f}")
+        console.print()
     for i, h in enumerate(res.hits, 1):
         console.print(f"[bold cyan][{i}][/] {h.label}  "
                       f"[dim](score {h.score:.4f}, vec {h.vec_rank}, bm25 {h.bm25_rank})[/]")
@@ -133,6 +150,9 @@ def ask(
     profile: str = typer.Option(None, "--profile", "-p", help="fast | quality | <ollama tag>"),
     top_k: int = typer.Option(None, "--top-k", "-k"),
     json_out: bool = typer.Option(False, "--json"),
+    decompose: bool = typer.Option(
+        False, "--decompose",
+        help="Split the question first (one extra model call; slower)."),
 ) -> None:
     """Ask a question and stream a cited answer."""
     from .rag.answer import AnswerEngine
@@ -141,15 +161,22 @@ def ask(
         engine = AnswerEngine()
         try:
             if json_out:
-                ans = await engine.answer(question, profile, top_k)
+                ans = await engine.answer(question, profile, top_k, decompose)
                 console.print_json(jsonlib.dumps(ans.to_dict(), ensure_ascii=False))
                 return
 
             parts: list[str] = []
             sources: list[dict] = []
-            with console.status("retrieving…"):
-                gen = engine.stream(question, profile, top_k)
+            with console.status("splitting the question…" if decompose
+                                else "retrieving…"):
+                gen = engine.stream(question, profile, top_k, decompose)
                 first = await gen.__anext__()
+            for sub in first.get("sub_questions") or []:
+                console.print(f"[dim]· {sub}[/]")
+            for chain in first.get("chains") or []:
+                console.print(f"[dim]→ {chain}[/]")
+            if first.get("sub_questions") or first.get("chains"):
+                console.print()
             sources = first.get("sources", [])
             for src in sources:
                 console.print(f"[dim][{src['n']}] {src['title']} — {src['section']}[/]")
@@ -348,3 +375,130 @@ def kg_viz(
     for name, path in written.items():
         table.add_row(name, f"{path}  ({path.stat().st_size / 1024:.0f} KB)")
     console.print(table)
+
+
+def _kg_open():
+    """Open the graph, or exit with the same message every kg command uses."""
+    from .kg.store import KgStore
+
+    s = get_settings()
+    if not s.kg_db_path.exists():
+        console.print("[red]No graph yet. Run `shiaqa kg build`.[/red]")
+        raise typer.Exit(1)
+    return KgStore(s), s
+
+
+def _kg_resolve(kg, title: str):
+    """One entity node from a title, or exit."""
+    matches = kg.find_by_label(title, 5)
+    if not matches:
+        console.print(f"[yellow]Nothing in the graph matching {title!r}.[/yellow]")
+        raise typer.Exit(1)
+    if len(matches) > 1:
+        others = ", ".join(m["label"] for m in matches[1:])
+        console.print(f"[dim]{title!r} -> {matches[0]['label']}; "
+                      f"also matched: {others}[/dim]")
+    return matches[0]
+
+
+@kg_app.command("chain")
+def kg_chain(
+    title: str,
+    hops: int = typer.Option(2, "--hops", "-h", help="How many typed hops to walk."),
+    limit: int = typer.Option(12, "--limit", "-n", help="How many chains to print."),
+    deep_only: bool = typer.Option(False, "--deep-only",
+                                   help="Only paths of two or more hops."),
+) -> None:
+    """Walk outward from one article and narrate what the graph connects it to."""
+    from .kg import paths
+    from .kg.ontology import Ontology
+
+    kg, s = _kg_open()
+    node = _kg_resolve(kg, title)
+    preds = Ontology().predicates
+    found = paths.expand(kg, [node["id"]], preds, max_hops=hops,
+                         beam=s.kg_beam_width, limit=max(limit * 4, limit),
+                         hub_degree_max=s.kg_hub_degree_max)
+    if deep_only:
+        found = [p for p in found if p.hops >= 2]
+    if not found:
+        console.print("[yellow]No typed relations to walk from here.[/yellow]")
+        raise typer.Exit(1)
+
+    persons = paths.person_nodes(kg, [n for p in found for n in p.nodes])
+    console.print(f"\n[bold]{node['label']}[/bold] — {hops} hop(s)\n")
+    for p in found[:limit]:
+        console.print(f"  [dim]{p.score:.3f}  h{p.hops}[/dim]  "
+                      f"{paths.narrate(p, preds, persons)}")
+        trail = " -> ".join(f"{st.p}{'' if st.direction == 'out' else ' (rev)'}"
+                            for st in p.steps)
+        fields = ", ".join(sorted({st.field for st in p.steps if st.field}))
+        console.print(f"          [dim]via {trail}"
+                      f"{'  |  fields: ' + fields if fields else ''}[/dim]")
+    kg.close()
+
+
+@kg_app.command("path")
+def kg_path(
+    start: str,
+    end: str,
+    hops: int = typer.Option(None, "--hops", "-h",
+                             help="Longest route to consider."),
+    limit: int = typer.Option(3, "--limit", "-n"),
+) -> None:
+    """Find how the graph connects two articles."""
+    from .kg import paths
+    from .kg.ontology import Ontology
+
+    kg, s = _kg_open()
+    a, b = _kg_resolve(kg, start), _kg_resolve(kg, end)
+    preds = Ontology().predicates
+    found = paths.connect(kg, a["id"], b["id"], preds,
+                          max_hops=hops or s.kg_connect_max_hops,
+                          beam=s.kg_beam_width, limit=limit,
+                          hub_degree_max=s.kg_hub_degree_max)
+    console.print(f"\n[bold]{a['label']}[/bold] -> [bold]{b['label']}[/bold]\n")
+    if not found:
+        console.print("[yellow]No typed route within that many hops.[/yellow]")
+        console.print("[dim]Routes through places and other hubs are refused "
+                      "on purpose: a shared birthplace connects hundreds of "
+                      "unrelated people.[/dim]")
+        kg.close()
+        raise typer.Exit(1)
+
+    persons = paths.person_nodes(kg, [n for p in found for n in p.nodes])
+    for p in found:
+        console.print(f"  [dim]{p.score:.3f}  h{p.hops}[/dim]  "
+                      f"{paths.narrate(p, preds, persons)}")
+        trail = " -> ".join(f"{st.p}{'' if st.direction == 'out' else ' (rev)'}"
+                            for st in p.steps)
+        console.print(f"          [dim]via {trail}[/dim]")
+    kg.close()
+
+
+@kg_app.command("compare")
+def kg_compare(
+    first: str,
+    second: str,
+    limit: int = typer.Option(8, "--limit", "-n"),
+) -> None:
+    """Line up what the graph records about two articles, predicate by predicate."""
+    from .kg import paths
+    from .kg.ontology import Ontology
+
+    kg, _ = _kg_open()
+    a, b = _kg_resolve(kg, first), _kg_resolve(kg, second)
+    cmp = paths.compare(kg, a["id"], b["id"], Ontology().predicates, limit=limit)
+    if cmp is None:
+        console.print("[yellow]Nothing the graph records of both.[/yellow]")
+        kg.close()
+        raise typer.Exit(1)
+
+    console.print(f"\n[bold]{cmp.a_label}[/bold] vs [bold]{cmp.b_label}[/bold]\n")
+    for row in cmp.rows:
+        console.print(f"  [bold]{row.label}[/bold]")
+        console.print(f"    {cmp.a_label}: {', '.join(row.a_objects[:5]) or '—'}")
+        console.print(f"    {cmp.b_label}: {', '.join(row.b_objects[:5]) or '—'}")
+        if row.shared:
+            console.print(f"    [green]both:[/green] {', '.join(row.shared[:5])}")
+    kg.close()

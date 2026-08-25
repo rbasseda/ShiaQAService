@@ -195,6 +195,33 @@ def _kg_for(tmp_path, settings):
     return kg
 
 
+def _kg_two_hop(tmp_path, settings):
+    """Ashura -> al-Husayn -> the Islamic centre: page 2 is only reachable twice.
+
+    Same subdirectory trick as `_kg_for`, for the same reason. `taught_by` is a
+    tier-0 predicate and not in `NO_TRANSIT`, so the second hop is allowed.
+    """
+    from shiaqa.kg.store import KgStore
+
+    (tmp_path / "graph2").mkdir(exist_ok=True)
+    kg = KgStore(settings, path=tmp_path / "graph2" / "kg.db")
+    kg.init_schema()
+    kg.load(
+        [{"id": "page:1", "kind": "entity", "label": "Ashura", "page_id": 1,
+          "url": "http://x/1", "classes": []},
+         {"id": "page:3", "kind": "entity", "label": "Imam al-Husayn (a)",
+          "page_id": 3, "url": "http://x/3", "classes": ["Imam"]},
+         {"id": "page:2", "kind": "entity", "label": "Az-Zahraa Islamic Centre",
+          "page_id": 2, "url": "http://x/2", "classes": []}],
+        [{"s": "page:1", "p": "taught_by", "o": "page:3", "src": "infobox",
+          "field": "professors"},
+         {"s": "page:3", "p": "taught_by", "o": "page:2", "src": "infobox",
+          "field": "professors"}],
+        [],
+    )
+    return kg
+
+
 def test_graph_channel_is_silent_when_no_graph_is_built(store):
     """A missing kg.db must degrade to plain hybrid retrieval, not raise."""
     st, s = store
@@ -249,6 +276,123 @@ def test_fact_block_is_attributed_to_wikishia_in_the_context(store, tmp_path):
     assert "WikiShia" in res.context
     # The prompt forbids neutral assertion; the block must not read as our claim.
     assert res.context.startswith("[KG]")
+
+
+# --- multi-hop ---------------------------------------------------------------
+
+def test_one_hop_leaves_the_fused_ranking_byte_identical(store, tmp_path):
+    """`kg_max_hops = 1` must be indistinguishable from the pre-multi-hop system.
+
+    The same standard as `test_zero_weight_...` above, and for the same reason:
+    the one-hop branch calls `KgStore.neighbour_pages` literally rather than
+    routing through `paths.expand`, which is not equivalent — it suppresses hubs
+    and refuses to leave a place. This is what makes that a fact, not a hope.
+    """
+    st, s = store
+    kg = _kg_two_hop(tmp_path, s)
+    cfg = Settings(data_dir=tmp_path, embed_dim=4, kg_max_hops=1)
+    r = Retriever(cfg, st, _StubEmbedder(), kg=kg)
+
+    # Not "the same as having no graph" — the one-hop channel has been live at
+    # weight 0.8 since before this feature, and preserving *that* is the point.
+    # What must hold is that the channel is still exactly `neighbour_pages`, with
+    # none of `paths.expand`'s hub suppression or transit rules applied.
+    seeds = [kg.node_for_page(1)]
+    expected = st.page_chunks(
+        kg.neighbour_pages(seeds, cfg.kg_neighbour_pages), cfg.kg_chunks_per_page)
+    assert r._graph_channel([1]) == expected
+    assert r._graph_paths([1]) == []
+    assert r.search_sync("What is Ashura?", 6).kg_chains == []
+
+
+def test_two_hops_reach_an_article_one_hop_cannot(store, tmp_path):
+    st, s = store
+    cfg = dict(data_dir=tmp_path, embed_dim=4, weight_graph=3.0,
+               kg_neighbour_pages=4, kg_chunks_per_page=2)
+    kg = _kg_two_hop(tmp_path, s)
+
+    one = Retriever(Settings(**cfg, kg_max_hops=1), st, _StubEmbedder(), kg=kg)
+    two = Retriever(Settings(**cfg, kg_max_hops=2), st, _StubEmbedder(), kg=kg)
+    q = "What is Ashura?"
+
+    assert 2 not in {h.page_id for h in one.search_sync(q, 6).hits}
+    assert 2 in {h.page_id for h in two.search_sync(q, 6).hits}
+
+
+def test_the_chain_block_is_absent_at_one_hop(store, tmp_path):
+    """What makes `kg_chains_in_context = True` a safe default.
+
+    The block is emitted only for paths of two hops or more, so the setting is
+    inert until `kg_max_hops` is raised — leaving one variable to attribute any
+    regression to.
+    """
+    st, s = store
+    kg = _kg_two_hop(tmp_path, s)
+    res = Retriever(Settings(data_dir=tmp_path, embed_dim=4, kg_max_hops=1,
+                             kg_chains_in_context=True),
+                    st, _StubEmbedder(), kg=kg).search_sync("What is Ashura?", 6)
+    assert res.kg_chains == []
+    assert "[KG-PATH]" not in res.context
+
+
+def test_a_one_step_path_is_never_narrated_as_a_chain(store, tmp_path):
+    """A single hop is a fact; the facts block already renders those."""
+    st, s = store
+    res = Retriever(Settings(data_dir=tmp_path, embed_dim=4, kg_max_hops=2,
+                             weight_graph=3.0),
+                    st, _StubEmbedder(), kg=_kg_for(tmp_path, s)
+                    ).search_sync("What is Ashura?", 6)
+    assert res.kg_chains == []
+
+
+def test_the_chain_block_is_attributed_to_wikishia(store, tmp_path):
+    st, s = store
+    res = Retriever(Settings(data_dir=tmp_path, embed_dim=4, kg_max_hops=2,
+                             weight_graph=3.0),
+                    st, _StubEmbedder(), kg=_kg_two_hop(tmp_path, s)
+                    ).search_sync("What is Ashura?", 6)
+    assert res.kg_chains
+    assert "[KG-PATH]" in res.context
+    assert "recorded by WikiShia" in res.context
+    # The facts block, when both are on, must still open the context.
+    assert res.context.startswith("[KG-PATH]") or res.context.startswith("[")
+
+
+def test_the_facts_block_still_comes_first_when_both_are_on(store, tmp_path):
+    st, s = store
+    res = Retriever(Settings(data_dir=tmp_path, embed_dim=4, kg_max_hops=2,
+                             weight_graph=3.0, kg_facts_in_context=True),
+                    st, _StubEmbedder(), kg=_kg_two_hop(tmp_path, s)
+                    ).search_sync("What is Ashura?", 6)
+    assert res.kg_facts and res.kg_chains
+    assert res.context.startswith("[KG]")
+    assert res.context.index("[KG-PATH]") > 0
+
+
+def test_the_chain_block_never_pushes_the_context_over_budget(store, tmp_path):
+    """`_pack_context` deducts the block before packing hits, so an oversized
+    block silently drops the last excerpt rather than overflowing."""
+    st, s = store
+    budget = 120
+    res = Retriever(Settings(data_dir=tmp_path, embed_dim=4, kg_max_hops=2,
+                             weight_graph=3.0, kg_facts_in_context=True,
+                             context_token_budget=budget),
+                    st, _StubEmbedder(), kg=_kg_two_hop(tmp_path, s)
+                    ).search_sync("What is Ashura?", 6)
+    assert res.context_tokens <= budget
+
+
+def test_chains_and_paths_stay_aligned_for_provenance(store, tmp_path):
+    """The CLI zips them, so a length mismatch would silently mislabel a chain."""
+    st, s = store
+    res = Retriever(Settings(data_dir=tmp_path, embed_dim=4, kg_max_hops=2,
+                             weight_graph=3.0),
+                    st, _StubEmbedder(), kg=_kg_two_hop(tmp_path, s)
+                    ).search_sync("What is Ashura?", 6)
+    assert len(res.kg_chains) == len(res.kg_paths)
+    for line, path in zip(res.kg_chains, res.kg_paths):
+        assert line
+        assert path is None or path.hops >= 2
 
 
 class _StubEmbedder:

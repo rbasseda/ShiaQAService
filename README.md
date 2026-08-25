@@ -177,7 +177,7 @@ discarding embeddings. To pick up wiki edits, `shiaqa fetch --force` then `shiaq
 .venv/bin/python -m pytest tests/ -q
 ```
 
-28 tests, all offline — no Ollama, no network.
+171 tests, all offline — no Ollama, no network.
 
 ## Evaluation
 
@@ -192,6 +192,20 @@ chunk holding the fact never reaches the prompt.
 
 Current: **recall@6 = 1.00, MRR = 0.933, answer-in-context = 1.00**, median retrieval
 latency **109 ms**.
+
+Two further sets exercise the graph. `eval/questions_kg.yaml` holds 10 questions that turn on
+a *relation* rather than a passage; `eval/questions_multihop.yaml` holds 12 that need two
+typed hops, where `expect` names only the far article — the one a single hop cannot reach.
+
+```bash
+.venv/bin/python eval/run_eval.py --k 6 --kg      # graph channel off vs on
+.venv/bin/python eval/run_eval.py --k 6 --hops    # one hop vs two
+```
+
+`--hops` reports answer-in-context twice, once over the whole prompt and once over the
+retrieved passages alone. The second number is the honest one: a chain block that states the
+composed relation satisfies the first by construction, so without the split a large and
+purely definitional win would be reported.
 
 To re-tune the fusion after changing the corpus or models:
 
@@ -237,9 +251,17 @@ sleep) for 39,952 embeddings. The database is 182 MB.
   of them (several Husayns, several Fatimas). Prominence tie-breaking handles the common
   case; an explicitly disambiguating question ("Husayn son of al-Kazim") is handled by the
   lexical channel.
-- **No multi-hop reasoning.** Questions needing facts combined across several articles
-  ("compare the lineages of the fourth and fifth Imams") retrieve reasonable passages but are
-  answered only as well as a small model can synthesise them.
+- **Multi-hop is structural, not semantic.** Two typed hops of the knowledge graph now reach
+  articles a single hop cannot, and the composed relation is narrated into the prompt
+  ("al-Sharif al-Radi was taught by al-Shaykh al-Mufid, who was taught by al-Shaykh
+  al-Saduq"). What is still missing is any sense of *which* relation a question asked about:
+  for "who taught the teacher of al-Sharif al-Radi" the graph offers al-Saduq and al-Tusi at
+  identical scores, and nothing prefers the one the question means. So the composed fact
+  usually reaches the prompt, while the far article itself only sometimes wins a top-6 slot.
+- **Question decomposition costs model calls, so it is opt-in.** `shiaqa ask --decompose`
+  splits a question, retrieves for each part, and merges by rank — useful for genuine
+  cross-article comparisons that no typed edge relates. It adds roughly five seconds to the
+  retrieval phase; total time stays dominated by CPU generation.
 - Images, tables and infobox media are dropped during cleaning; the text pipeline is
   text-only by design.
 

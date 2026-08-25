@@ -18,6 +18,7 @@ from typing import Iterable, Sequence
 
 from ..config import Settings, get_settings
 from ..log import get_logger
+from . import render
 
 log = get_logger(__name__)
 
@@ -70,6 +71,13 @@ PREDICATE_PRIORITY: dict[str, int] = {
     "revealed_at": 2, "revealed_because": 2, "related_verse": 2,
 }
 DEFAULT_PRIORITY = 3
+
+# Predicates that are not facts about a subject but taxonomy scaffolding.
+_TYPED = "p NOT IN ('instance_of','subclass_of')"
+
+# Ids per query. SQLITE_MAX_VARIABLE_NUMBER is 999 on older builds; `degrees`
+# binds its batch twice, so it halves this again.
+_SQL_VARS = 900
 
 
 class KgStore:
@@ -168,28 +176,135 @@ class KgStore:
             "ORDER BY length(label) LIMIT ?", (f"%{label}%", limit),
         ).fetchall()
 
+    def classes_for(self, node_ids: Sequence[str]) -> dict[str, list[str]]:
+        """Classes for a batch of nodes. Batched sibling of `classes_of`."""
+        out: dict[str, list[str]] = {nid: [] for nid in node_ids}
+        if not node_ids:
+            return out
+        ids = list(dict.fromkeys(node_ids))
+        for start in range(0, len(ids), _SQL_VARS):
+            batch = ids[start:start + _SQL_VARS]
+            marks = ",".join("?" * len(batch))
+            for r in self.db.execute(
+                f"SELECT node_id, class FROM node_classes WHERE node_id IN ({marks})",
+                batch,
+            ):
+                out.setdefault(r["node_id"], []).append(r["class"])
+        return out
+
     def classes_of(self, node_id: str) -> list[str]:
         return [r["class"] for r in self.db.execute(
             "SELECT class FROM node_classes WHERE node_id=?", (node_id,))]
 
+    def edges_from(self, node_ids: Sequence[str], include_taxonomy: bool = False,
+                   ) -> dict[str, list[dict]]:
+        """Every typed edge touching each node, one query pair for the batch.
+
+        Same dict shape as `edges_of` plus `page_id`, carried straight off the
+        join. That field is the whole point: it is what lets `neighbour_pages`
+        rank a hop without a `node()` lookup per edge, which at depth two was
+        hundreds of round-trips against a ~109 ms retrieval budget.
+
+        The `ORDER BY` is load-bearing rather than cosmetic. Ties on predicate
+        priority are common and decide which neighbours survive a beam, and the
+        old single-node queries resolved them by whatever order the
+        `edges_s(s, p)` index happened to yield. Stating it makes the ranking a
+        contract instead of an artefact — `e.rowid` last reproduces the previous
+        order exactly, which is infobox field order.
+        """
+        out: dict[str, list[dict]] = {nid: [] for nid in node_ids}
+        if not node_ids:
+            return out
+        filt = "" if include_taxonomy else " AND e.p NOT IN ('instance_of','subclass_of')"
+        ids = list(dict.fromkeys(node_ids))
+        cols = ("e.p AS p, e.field AS field, n.label AS label, n.kind AS kind, "
+                "n.page_id AS page_id")
+        for start in range(0, len(ids), _SQL_VARS):
+            batch = ids[start:start + _SQL_VARS]
+            marks = ",".join("?" * len(batch))
+            # LEFT JOIN, as before: a dangling edge still surfaces with a null
+            # label and is dropped by the caller's guards, rather than silently
+            # vanishing from the traversal.
+            for direction, anchor, other, join in (
+                ("out", "e.s", "e.o", "e.o"),
+                ("in", "e.o", "e.s", "e.s"),
+            ):
+                for r in self.db.execute(
+                    f"SELECT {anchor} AS anchor, {other} AS other, {cols} "
+                    f"FROM edges e LEFT JOIN nodes n ON n.id = {join} "
+                    f"WHERE {anchor} IN ({marks}){filt} "
+                    f"ORDER BY {anchor}, e.p, e.rowid", batch,
+                ):
+                    out.setdefault(r["anchor"], []).append(
+                        {"dir": direction, "p": r["p"], "other": r["other"],
+                         "label": r["label"], "kind": r["kind"],
+                         "page_id": r["page_id"], "field": r["field"]})
+        for edges in out.values():
+            edges.sort(key=lambda e: PREDICATE_PRIORITY.get(e["p"], DEFAULT_PRIORITY))
+        return out
+
+    def degrees(self, node_ids: Sequence[str]) -> dict[str, int]:
+        """Typed degree in both directions — the fan-out traversal would face.
+
+        Computed rather than stored: a `nodes.degree` column would mean a schema
+        change and a migration for every `kg.db` already built, to save well
+        under a millisecond on a beam-sized batch.
+        """
+        out: dict[str, int] = {nid: 0 for nid in node_ids}
+        if not node_ids:
+            return out
+        ids = list(dict.fromkeys(node_ids))
+        half = _SQL_VARS // 2          # the batch is bound twice below
+        for start in range(0, len(ids), half):
+            batch = ids[start:start + half]
+            marks = ",".join("?" * len(batch))
+            for r in self.db.execute(
+                f"SELECT anchor, count(*) AS deg FROM ("
+                f"  SELECT s AS anchor FROM edges WHERE s IN ({marks}) AND {_TYPED}"
+                f"  UNION ALL"
+                f"  SELECT o AS anchor FROM edges WHERE o IN ({marks}) AND {_TYPED}"
+                f") GROUP BY anchor", [*batch, *batch],
+            ):
+                out[r["anchor"]] = r["deg"]
+        return out
+
+    def prominence(self, node_ids: Sequence[str]) -> dict[str, int]:
+        """How central the corpus treats each node — a tie-break, not a score.
+
+        Redirect count plus typed degree. `Store.title_candidates` already uses
+        redirect count for exactly this job ("the famous article accumulates far
+        more alternative spellings"), but on its own it is too flat to separate
+        scholars: al-Shaykh al-Saduq and Ahmad b. al-Husayn al-Ghada'iri both
+        have twelve. Degree separates them decisively — 32 against 6 — because an
+        encyclopaedia records more relations about the figure readers ask about.
+
+        Note this rewards the same property `hub_degree_max` refuses to travel
+        through, which is consistent rather than contradictory: prominence is
+        good to land on and ruinous to pass through.
+        """
+        out: dict[str, int] = {nid: 0 for nid in node_ids}
+        if not node_ids:
+            return out
+        degs = self.degrees(node_ids)
+        ids = list(dict.fromkeys(node_ids))
+        for start in range(0, len(ids), _SQL_VARS):
+            batch = ids[start:start + _SQL_VARS]
+            marks = ",".join("?" * len(batch))
+            for r in self.db.execute(
+                f"SELECT id, data FROM nodes WHERE id IN ({marks})", batch,
+            ):
+                aliases = 0
+                if r["data"]:
+                    try:
+                        aliases = len(json.loads(r["data"]).get("aliases") or [])
+                    except (ValueError, AttributeError):
+                        aliases = 0
+                out[r["id"]] = aliases + degs.get(r["id"], 0)
+        return out
+
     def edges_of(self, node_id: str, include_taxonomy: bool = False) -> list[dict]:
         """Every typed edge touching this node, each tagged with its direction."""
-        filt = "" if include_taxonomy else " AND p NOT IN ('instance_of','subclass_of')"
-        out: list[dict] = []
-        for r in self.db.execute(
-            f"SELECT e.*, n.label AS o_label, n.kind AS o_kind FROM edges e "
-            f"LEFT JOIN nodes n ON n.id = e.o WHERE e.s = ?{filt}", (node_id,)
-        ):
-            out.append({"dir": "out", "p": r["p"], "other": r["o"],
-                        "label": r["o_label"], "kind": r["o_kind"], "field": r["field"]})
-        for r in self.db.execute(
-            f"SELECT e.*, n.label AS s_label, n.kind AS s_kind FROM edges e "
-            f"LEFT JOIN nodes n ON n.id = e.s WHERE e.o = ?{filt}", (node_id,)
-        ):
-            out.append({"dir": "in", "p": r["p"], "other": r["s"],
-                        "label": r["s_label"], "kind": r["s_kind"], "field": r["field"]})
-        out.sort(key=lambda e: PREDICATE_PRIORITY.get(e["p"], DEFAULT_PRIORITY))
-        return out
+        return self.edges_from([node_id], include_taxonomy).get(node_id, [])
 
     def neighbour_pages(self, seed_node_ids: Sequence[str], limit: int) -> list[int]:
         """Page ids one typed hop from the seeds, best predicates first.
@@ -200,20 +315,18 @@ class KgStore:
         if not seed_node_ids:
             return []
         seeds = set(seed_node_ids)
+        by_node = self.edges_from(seed_node_ids)
         per_seed: list[list[int]] = []
         for node_id in seed_node_ids:
             ranked: list[int] = []
             seen: set[int] = set()
-            for e in self.edges_of(node_id):
+            for e in by_node.get(node_id, []):
                 if e["kind"] != "entity" or e["other"] in seeds:
                     continue
-                row = self.node(e["other"])
-                if row is None or row["page_id"] is None:
+                if e["page_id"] is None or e["page_id"] in seen:
                     continue
-                if row["page_id"] in seen:
-                    continue
-                seen.add(row["page_id"])
-                ranked.append(row["page_id"])
+                seen.add(e["page_id"])
+                ranked.append(e["page_id"])
             per_seed.append(ranked)
 
         out: list[int] = []
@@ -239,18 +352,8 @@ class KgStore:
         out: list[str] = []
         seen: set[str] = set()
         for e in self.edges_of(node_id):
-            if not e["label"]:
-                continue
-            pred = predicates.get(e["p"])
-            if pred is None:
-                continue
-            if e["dir"] == "out":
-                line = f"{subject} {pred.label} {e['label']}."
-            else:
-                inverse = predicates.get(pred.inverse) if pred.inverse else None
-                line = (f"{subject} {inverse.label} {e['label']}." if inverse
-                        else f"{e['label']} {pred.label} {subject}.")
-            if line in seen:
+            line = render.sentence(subject, e, predicates)
+            if line is None or line in seen:
                 continue
             seen.add(line)
             out.append(line)

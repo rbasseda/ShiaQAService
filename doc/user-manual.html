@@ -1,0 +1,2050 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ShiaQAService — User Manual</title>
+<!--
+  Source for doc/user-manual.pdf. Regenerate with:
+
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+        --headless --disable-gpu --no-pdf-header-footer \
+        --print-to-pdf=doc/user-manual.pdf doc/user-manual.html
+-->
+<style>
+  @page { size: Letter; margin: 19mm 17mm 19mm 17mm; }
+
+  :root {
+    --ink:      #16181a;
+    --muted:    #5b6165;
+    --accent:   #12505e;
+    --accent-2: #8a5a12;
+    --rule:     #d7d5cc;
+    --code-bg:  #f5f5f1;
+    --note-bg:  #f0f5f6;
+    --warn-bg:  #fbf4e7;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { font-size: 10.5pt; }
+
+  body {
+    margin: 0;
+    color: var(--ink);
+    font-family: Georgia, "Times New Roman", serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, .sans {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  }
+
+  code, pre, .mono {
+    font-family: "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  /* ---- title page ------------------------------------------------------ */
+
+  .title-page {
+    height: 233mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    page-break-after: always;
+  }
+  .title-page .kicker {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 9pt;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10mm;
+  }
+  .title-page h1 {
+    font-size: 30pt;
+    line-height: 1.1;
+    margin: 0 0 4mm;
+    letter-spacing: -0.01em;
+  }
+  .title-page .sub {
+    font-size: 13pt;
+    color: var(--muted);
+    font-style: italic;
+    margin: 0 auto;
+    max-width: 120mm;
+  }
+  .title-page .rule {
+    width: 52mm;
+    height: 2px;
+    background: var(--accent);
+    margin: 9mm auto;
+  }
+  .title-page .meta {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 9.5pt;
+    color: var(--muted);
+    line-height: 1.9;
+  }
+  .title-page .meta strong { color: var(--ink); font-weight: 600; }
+
+  /* ---- structure ------------------------------------------------------- */
+
+  .part {
+    page-break-before: always;
+  }
+
+  h2 {
+    font-size: 16pt;
+    margin: 0 0 4mm;
+    padding-bottom: 2.5mm;
+    border-bottom: 2px solid var(--accent);
+    letter-spacing: -0.01em;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    margin-right: 3mm;
+  }
+  h3 {
+    font-size: 11.5pt;
+    margin: 7mm 0 2mm;
+    color: var(--ink);
+    page-break-after: avoid;
+  }
+  h3 .num { color: var(--accent); margin-right: 2.5mm; font-weight: 600; }
+  h4 {
+    font-size: 10pt;
+    margin: 5mm 0 1.5mm;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    page-break-after: avoid;
+  }
+
+  p { margin: 0 0 3mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.4mm; }
+
+  a { color: var(--accent); text-decoration: none; }
+
+  .lede {
+    font-size: 11pt;
+    color: var(--muted);
+    font-style: italic;
+    margin-bottom: 5mm;
+  }
+
+  /* ---- code ------------------------------------------------------------ */
+
+  code {
+    font-size: 0.87em;
+    background: var(--code-bg);
+    padding: 0.5mm 1.1mm;
+    border-radius: 2px;
+  }
+
+  pre {
+    background: var(--code-bg);
+    border-left: 2.5px solid var(--accent);
+    padding: 3mm 4mm;
+    margin: 0 0 4mm;
+    font-size: 8.6pt;
+    line-height: 1.45;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+  }
+  pre code { background: none; padding: 0; font-size: 1em; }
+  pre .c { color: var(--muted); font-style: italic; }
+
+  /* ---- API signature blocks -------------------------------------------- */
+
+  .sig {
+    page-break-inside: avoid;
+    margin: 0 0 4mm;
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 2px;
+  }
+  .sig > .decl {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 8.6pt;
+    line-height: 1.5;
+    background: var(--code-bg);
+    padding: 2.5mm 3.5mm;
+    border-bottom: 1px solid var(--rule);
+    white-space: pre-wrap;
+  }
+  .sig > .body { padding: 2.5mm 3.5mm 1mm; }
+  .sig > .body p:last-child { margin-bottom: 2mm; }
+  .sig .ret { color: var(--accent); }
+
+  .kw { color: var(--accent-2); }
+
+  /* ---- tables ----------------------------------------------------------- */
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 4.5mm;
+    font-size: 9pt;
+    page-break-inside: avoid;
+  }
+  thead th {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    text-align: left;
+    border-bottom: 1.5px solid var(--accent);
+    padding: 1.5mm 2mm;
+  }
+  tbody td {
+    border-bottom: 1px solid var(--rule);
+    padding: 1.7mm 2mm;
+    vertical-align: top;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td code { font-size: 8.2pt; white-space: nowrap; }
+  td.wrap code { white-space: normal; }
+
+  /* ---- callouts --------------------------------------------------------- */
+
+  .box {
+    padding: 3mm 4mm;
+    margin: 0 0 4.5mm;
+    border-left: 3px solid var(--accent);
+    background: var(--note-bg);
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  .box.warn { border-left-color: var(--accent-2); background: var(--warn-bg); }
+  .box .tag {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 1.5mm;
+  }
+  .box.warn .tag { color: var(--accent-2); }
+  .box p:last-child { margin-bottom: 0; }
+
+  /* ---- table of contents ------------------------------------------------ */
+
+  .toc { page-break-after: always; }
+  .toc ol { list-style: none; padding: 0; margin: 0; }
+  .toc > ol > li {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10.5pt;
+    font-weight: 600;
+    margin: 1.9mm 0 0.7mm;
+    padding-bottom: 0.8mm;
+    border-bottom: 1px solid var(--rule);
+  }
+  .toc > ol > li > ol {
+    font-weight: 400;
+    font-size: 9pt;
+    line-height: 1.3;
+    color: var(--muted);
+    margin-top: 0.8mm;
+    padding-left: 7mm;
+  }
+  .toc > ol > li > ol li { margin-bottom: 0.3mm; }
+  .toc .n { display: inline-block; min-width: 9mm; color: var(--accent); }
+  .toc > ol > li > ol .n { min-width: 11mm; }
+
+  .flow {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 8pt;
+    line-height: 1.6;
+    background: var(--code-bg);
+    padding: 3mm;
+    text-align: center;
+    margin-bottom: 4mm;
+  }
+</style>
+</head>
+<body>
+
+<!-- ====================== TITLE PAGE ====================== -->
+<section class="title-page">
+  <div class="kicker">User Manual &middot; Version 0.1.0</div>
+  <h1>ShiaQAService</h1>
+  <p class="sub">Retrieval-augmented question answering over WikiShia,<br>running entirely on a local Ollama</p>
+  <div class="rule"></div>
+  <div class="meta">
+    <strong>Command line &middot; HTTP &middot; Python</strong><br>
+    Complete API signature reference<br><br>
+    Apache-2.0 (code only) &middot; Python &ge; 3.11<br>
+    Generated 24 August 2026
+  </div>
+</section>
+
+<!-- ====================== CONTENTS ====================== -->
+<section class="toc">
+  <h2><span class="num">&sect;</span>Contents</h2>
+  <ol>
+    <li><span class="n">1</span><a href="#about">About this manual</a></li>
+    <li><span class="n">2</span><a href="#install">Requirements and installation</a>
+      <ol>
+        <li><span class="n">2.1</span><a href="#install-py">Python environment</a></li>
+        <li><span class="n">2.2</span><a href="#install-ollama">Ollama and models</a></li>
+        <li><span class="n">2.3</span><a href="#install-verify">Verifying the install</a></li>
+      </ol>
+    </li>
+    <li><span class="n">3</span><a href="#firstrun">First run: corpus, index, graph</a>
+      <ol>
+        <li><span class="n">3.1</span><a href="#firstrun-fetch">Fetching the corpus</a></li>
+        <li><span class="n">3.2</span><a href="#firstrun-index">Building the index</a></li>
+        <li><span class="n">3.3</span><a href="#firstrun-kg">Building the knowledge graph</a></li>
+        <li><span class="n">3.4</span><a href="#firstrun-danger">The one destructive command</a></li>
+      </ol>
+    </li>
+    <li><span class="n">4</span><a href="#using">Everyday use</a>
+      <ol>
+        <li><span class="n">4.1</span><a href="#using-ask">Asking questions</a></li>
+        <li><span class="n">4.2</span><a href="#using-search">Inspecting retrieval</a></li>
+        <li><span class="n">4.3</span><a href="#using-kg">Exploring the graph</a></li>
+        <li><span class="n">4.4</span><a href="#using-serve">Running the service</a></li>
+      </ol>
+    </li>
+    <li><span class="n">5</span><a href="#cli">Command-line API</a>
+      <ol>
+        <li><span class="n">5.1</span><a href="#cli-corpus">Corpus and index commands</a></li>
+        <li><span class="n">5.2</span><a href="#cli-query">Query commands</a></li>
+        <li><span class="n">5.3</span><a href="#cli-kg">Knowledge-graph commands</a></li>
+      </ol>
+    </li>
+    <li><span class="n">6</span><a href="#http">HTTP API</a>
+      <ol>
+        <li><span class="n">6.1</span><a href="#http-model">The request model</a></li>
+        <li><span class="n">6.2</span><a href="#http-endpoints">Endpoints</a></li>
+        <li><span class="n">6.3</span><a href="#http-sse">Streaming event shapes</a></li>
+        <li><span class="n">6.4</span><a href="#http-errors">Status codes and errors</a></li>
+      </ol>
+    </li>
+    <li><span class="n">7</span><a href="#python">Python API</a>
+      <ol>
+        <li><span class="n">7.1</span><a href="#py-config">shiaqa.config and shiaqa.log</a></li>
+        <li><span class="n">7.2</span><a href="#py-rag">shiaqa.rag &mdash; answering</a></li>
+        <li><span class="n">7.3</span><a href="#py-retrieve">shiaqa.rag.retrieve</a></li>
+        <li><span class="n">7.4</span><a href="#py-decompose">shiaqa.rag.decompose</a></li>
+        <li><span class="n">7.5</span><a href="#py-store">shiaqa.store.sqlite_store</a></li>
+        <li><span class="n">7.6</span><a href="#py-kgstore">shiaqa.kg.store</a></li>
+        <li><span class="n">7.7</span><a href="#py-paths">shiaqa.kg.paths</a></li>
+        <li><span class="n">7.8</span><a href="#py-kgrest">shiaqa.kg &mdash; build, ontology, render, viz</a></li>
+        <li><span class="n">7.9</span><a href="#py-ingest">shiaqa.ingest and shiaqa.wiki</a></li>
+        <li><span class="n">7.10</span><a href="#py-embed">shiaqa.embed and shiaqa.rag.prompt</a></li>
+      </ol>
+    </li>
+    <li><span class="n">8</span><a href="#config">Configuration reference</a></li>
+    <li><span class="n">9</span><a href="#eval">Evaluating retrieval changes</a></li>
+    <li><span class="n">10</span><a href="#trouble">Troubleshooting</a></li>
+    <li><span class="n">11</span><a href="#licence">Licensing and attribution</a></li>
+  </ol>
+</section>
+
+<!-- ====================== 1. ABOUT ====================== -->
+<section class="part" id="about">
+  <h2><span class="num">1</span>About this manual</h2>
+
+  <p class="lede">What the system is, who this manual is for, and how to read the signature blocks.</p>
+
+  <p>ShiaQAService answers questions about Shia Islam, its history, texts and figures from
+  the <a href="https://en.wikishia.net">WikiShia</a> encyclopaedia. Everything runs on the
+  machine in front of you: there are no API keys, and no question or document leaves the
+  laptop. Answers are grounded in retrieved encyclopaedia passages and carry inline citations
+  <code>[1]</code>, <code>[2]</code> back to the source articles.</p>
+
+  <div class="flow">MediaWiki API &rarr; raw JSONL cache &rarr; cleaned text &rarr; section-aware chunks<br>
+  &rarr; SQLite (rows + FTS5 + sqlite-vec) &rarr; hybrid retrieval &rarr; Ollama &rarr; cited answer</div>
+
+  <p>A second, independent pass over the same raw cache builds a structural
+  <strong>knowledge graph</strong>: infobox fields are already typed relations and category
+  pages are already a taxonomy, so the graph costs no model calls and about fifteen seconds.
+  It feeds a fourth retrieval channel and can walk two typed hops to compose relations that
+  appear in no single article.</p>
+
+  <p>The system exposes three APIs over the same engine, and this manual documents all
+  three:</p>
+
+  <table>
+    <thead><tr><th style="width:22%">Surface</th><th style="width:26%">Entry point</th><th>Use it when</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Command line</strong></td><td><code>shiaqa &lt;command&gt;</code></td>
+          <td>Building and maintaining the corpus; interactive questions; inspecting retrieval and the graph.</td></tr>
+      <tr><td><strong>HTTP</strong></td><td><code>shiaqa serve</code></td>
+          <td>Another process or a front end needs answers, streamed or whole.</td></tr>
+      <tr><td><strong>Python</strong></td><td><code>import shiaqa…</code></td>
+          <td>Embedding the retriever in your own code, or changing how retrieval works.</td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="num">1.1</span>Conventions</h3>
+
+  <p>Signatures are given exactly as they appear in the source, including type hints and
+  defaults. A block looks like this:</p>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">async def</span> answer(question: str, profile: str | None = None,
+       top_k: int | None = None,
+       decompose: bool | None = None) <span class="ret">-&gt; Answer</span></div>
+    <div class="body"><p>A short statement of what the call does, followed by anything about
+    its arguments or return value that the signature does not already say.</p></div>
+  </div>
+
+  <p>Shell examples assume the project virtual environment. Either activate it, or prefix
+  each command with <code>.venv/bin/</code> as the examples do. A leading <code>#</code> is a
+  comment, never part of the command.</p>
+
+  <p>Names beginning with a single underscore are internal. They are documented here only
+  where a reader modifying retrieval has to know they exist &mdash; they carry no stability
+  promise.</p>
+
+  <h3><span class="num">1.2</span>Why the design looks the way it does</h3>
+
+  <p>The target machine is an Intel Mac, where Ollama has no Metal path and therefore no GPU
+  path at all. Everything is CPU-bound, and that single constraint explains most of what
+  follows: SQLite instead of a vector server, a resumable embedding phase, a tight context
+  budget, sources streamed before the answer, and a graph traversal that costs milliseconds
+  rather than model calls. Where a knob exists because of that constraint, this manual says so.</p>
+</section>
+
+<!-- ====================== 2. INSTALL ====================== -->
+<section class="part" id="install">
+  <h2><span class="num">2</span>Requirements and installation</h2>
+
+  <p class="lede">Python 3.11 or newer, a running Ollama, two pulled models, and about 250 MB of disk.</p>
+
+  <h3><span class="num">2.1</span>Python environment</h3>
+
+  <pre><code><span class="c"># from the project root</span>
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -e ".[dev]"</code></pre>
+
+  <p>The package installs one console script, <code>shiaqa</code>, and the importable package
+  <code>shiaqa</code> from <code>src/</code>. Runtime dependencies are httpx,
+  mwparserfromhell, sqlite-vec, numpy, FastAPI, uvicorn, Typer, Rich, Pydantic and
+  pydantic-settings; the <code>dev</code> extra adds pytest and pytest-asyncio.</p>
+
+  <h3><span class="num">2.2</span>Ollama and models</h3>
+
+  <p>Install Ollama and pull the embedding model plus at least one generator:</p>
+
+  <pre><code>ollama pull nomic-embed-text              <span class="c"># 768-d embeddings, required</span>
+ollama pull llama3.2:3b                   <span class="c"># the "fast" profile</span>
+ollama pull qwen2.5:7b-instruct-q4_K_M    <span class="c"># the "quality" profile</span></code></pre>
+
+  <p>The service talks to Ollama over HTTP at <code>http://127.0.0.1:11434</code>. Any pulled
+  tag can be used as a generator by passing it where a profile is expected; only the embedding
+  model is fixed by the stored vectors.</p>
+
+  <div class="box warn">
+    <span class="tag">Do not change the embedding model casually</span>
+    <p>Every stored vector was produced by <code>nomic-embed-text</code> with the prefix
+    <code>search_document:</code>, and queries are embedded with <code>search_query:</code>.
+    Changing <code>embed_model</code> or either prefix invalidates the whole vector index
+    silently &mdash; retrieval degrades and nothing raises. Re-embedding is a multi-hour CPU job.</p>
+  </div>
+
+  <h3><span class="num">2.3</span>Verifying the install</h3>
+
+  <pre><code>.venv/bin/python -m pytest tests/ -q     <span class="c"># 171 tests, fully offline</span>
+.venv/bin/shiaqa status                  <span class="c"># index counts + Ollama health</span></code></pre>
+
+  <p>The test suite needs neither Ollama nor the network nor a built index. If it passes but
+  <code>status</code> reports that Ollama cannot be reached, the install is fine and the
+  server is not running.</p>
+</section>
+
+<!-- ====================== 3. FIRST RUN ====================== -->
+<section class="part" id="firstrun">
+  <h2><span class="num">3</span>First run: corpus, index, graph</h2>
+
+  <p class="lede">Three build steps, in order. The middle one takes hours; the other two take minutes.</p>
+
+  <h3><span class="num">3.1</span>Fetching the corpus</h3>
+
+  <pre><code>.venv/bin/shiaqa fetch</code></pre>
+
+  <p>Downloads namespaces 0 (articles), 3000 (<code>Text:</code> primary sources) and 14
+  (categories) through the MediaWiki API into <code>data/raw/*.jsonl</code>, plus a redirect
+  map into <code>data/raw/redirects.json</code>. It takes a few minutes and writes about
+  50&nbsp;MB. Everything is cached: a second run is a no-op unless you pass
+  <code>--force</code>.</p>
+
+  <p>The fetcher is deliberately a polite API client. It identifies itself with a contact
+  address, serialises its requests, sleeps <code>request_delay</code> seconds between calls
+  and honours <code>maxlag</code>. Do not parallelise it.</p>
+
+  <h3><span class="num">3.2</span>Building the index</h3>
+
+  <p>Indexing has two phases because their costs differ by three orders of magnitude.
+  Phase 1 &mdash; clean, chunk, write rows and the FTS5 BM25 index &mdash; takes about twenty
+  seconds. Phase 2 embeds every chunk at roughly four chunks per second on CPU, so about
+  40,000 chunks take some hours.</p>
+
+  <pre><code>.venv/bin/shiaqa index                <span class="c"># both phases (wipes first — see 3.4)</span>
+.venv/bin/shiaqa index --embed-only   <span class="c"># resume phase 2 only, always safe</span></code></pre>
+
+  <p>Phase 2 is resumable by construction: it processes only the rows returned by
+  <code>Store.chunks_missing_vectors()</code>, so it can be interrupted with Ctrl-C and
+  restarted as often as you like. Progress is reported with a rate and an ETA computed over a
+  trailing window, so a laptop that slept does not report a misleading average.</p>
+
+  <h3><span class="num">3.3</span>Building the knowledge graph</h3>
+
+  <pre><code>.venv/bin/shiaqa kg build             <span class="c"># ~15 s</span></code></pre>
+
+  <p>Reads <code>data/raw/</code> only and writes <code>data/kg/*.jsonl</code> plus
+  <code>data/kg.db</code>. It never opens <code>shiaqa.db</code>, so it cannot disturb the
+  index or the embeddings &mdash; it is the one build command in this project you can re-run
+  without thinking. The JSONL files are canonical and greppable; <code>kg.db</code> is a
+  derived index rebuilt from them in seconds.</p>
+
+  <p>With the graph present and the default settings, retrieval gains a fourth channel and
+  the prompt gains a <code>[KG-PATH]</code> block of composed relations. Without it, the
+  system works exactly as it did before the graph existed.</p>
+
+  <h3><span class="num">3.4</span>The one destructive command</h3>
+
+  <div class="box warn">
+    <span class="tag">shiaqa index with no flags wipes the database</span>
+    <p><code>build_text_index()</code> calls <code>Store.reset()</code>, which drops
+    <code>pages</code>, <code>chunks</code>, <code>chunks_fts</code>, <code>vec_chunks</code>
+    and <code>meta</code> &mdash; <strong>including every embedding</strong>. On this hardware
+    that is a multi-hour loss.</p>
+  </div>
+
+  <table>
+    <thead><tr><th style="width:38%">Intent</th><th>Command</th></tr></thead>
+    <tbody>
+      <tr><td>Resume or top up embeddings</td><td><code>shiaqa index --embed-only</code></td></tr>
+      <tr><td>Rebuild text + BM25, knowing it destroys vectors</td><td><code>shiaqa index --text-only</code></td></tr>
+      <tr><td>Drop navigation pages and orphan vectors, keeping embeddings</td><td><code>shiaqa prune</code></td></tr>
+      <tr><td>Delete specific pages from a live index</td><td><code>Store.delete_page(page_id)</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>Check <code>shiaqa status</code> before and after any index operation. The knowledge
+  graph is immune to all of this: it lives in its own file precisely because
+  <code>Store.reset()</code> drops everything <code>shiaqa.db</code> owns.</p>
+</section>
+
+<!-- ====================== 4. EVERYDAY USE ====================== -->
+<section class="part" id="using">
+  <h2><span class="num">4</span>Everyday use</h2>
+
+  <p class="lede">Four things you will actually do: ask, inspect retrieval, explore the graph, serve.</p>
+
+  <h3><span class="num">4.1</span>Asking questions</h3>
+
+  <pre><code>.venv/bin/shiaqa ask "Who compiled al-Kafi?"
+.venv/bin/shiaqa ask "Who compiled al-Kafi?" --profile quality
+.venv/bin/shiaqa ask "Compare the fourth and fifth Imams" --decompose
+.venv/bin/shiaqa ask "Who compiled al-Kafi?" --json</code></pre>
+
+  <p>The answer streams token by token. Sub-questions and reasoning chains, when there are
+  any, print first; then the numbered sources; then the answer; then the model, token count
+  and throughput; then the source URLs. <code>--json</code> switches to a single non-streaming
+  JSON object instead, the same shape the HTTP <code>/ask</code> endpoint returns.</p>
+
+  <p>Expect roughly 14&nbsp;s per answer on the <code>fast</code> profile and 27&nbsp;s on
+  <code>quality</code>. <code>--decompose</code> adds one model call before retrieval, so it
+  costs about another six to eight seconds; it is off by default and worth it only for
+  questions that genuinely span several articles.</p>
+
+  <h3><span class="num">4.2</span>Inspecting retrieval</h3>
+
+  <pre><code>.venv/bin/shiaqa search "Who compiled al-Kafi?" --full</code></pre>
+
+  <p>Retrieval only, no generation, and therefore instant &mdash; about 109&nbsp;ms median.
+  This is the command to reach for when tuning: it prints the reasoning chains with the
+  predicate trail behind each one, the graph facts, then every hit with its fused score and
+  its rank in the vector and BM25 channels, and finally the context token count.</p>
+
+  <h3><span class="num">4.3</span>Exploring the graph</h3>
+
+  <pre><code>.venv/bin/shiaqa kg stats
+.venv/bin/shiaqa kg show "Al-Shaykh al-Mufid"
+.venv/bin/shiaqa kg chain "Al-Sharif al-Radi" --deep-only
+.venv/bin/shiaqa kg path "Al-Shaykh al-Saduq" "Al-Shaykh al-Tusi"
+.venv/bin/shiaqa kg compare "Al-Shaykh al-Mufid" "Al-Shaykh al-Tusi"
+.venv/bin/shiaqa kg viz</code></pre>
+
+  <p>All of these are pure SQLite: no model calls, ~10&nbsp;ms at retrieval scale.
+  <code>kg viz</code> writes two self-contained HTML pages to <code>data/kg/viz/</code> that
+  open straight from disk with no server.</p>
+
+  <h3><span class="num">4.4</span>Running the service</h3>
+
+  <pre><code>.venv/bin/shiaqa serve --port 8000</code></pre>
+
+  <p>Starts FastAPI under uvicorn. Interactive documentation is at <code>/docs</code>, and the
+  endpoints are <code>/health</code>, <code>/search</code>, <code>/ask</code> and
+  <code>/ask/stream</code>. The answering engine is constructed once at startup and closed at
+  shutdown, so the first request does not pay for opening the database.</p>
+</section>
+
+<!-- ====================== 5. CLI API ====================== -->
+<section class="part" id="cli">
+  <h2><span class="num">5</span>Command-line API</h2>
+
+  <p class="lede">Every command, every flag, every default. Built with Typer; <code>--help</code>
+  works on the root, on <code>kg</code>, and on each command.</p>
+
+  <pre><code>shiaqa [COMMAND] [ARGS] [OPTIONS]
+shiaqa kg [SUBCOMMAND] [ARGS] [OPTIONS]</code></pre>
+
+  <p>Commands exit 0 on success. <code>search</code>, and every <code>kg</code> subcommand,
+  exit <strong>1</strong> when they have nothing to show &mdash; no matches, no graph built, no
+  entity by that name, no typed route &mdash; which makes them usable in shell conditionals.</p>
+
+  <h3><span class="num">5.1</span>Corpus and index commands</h3>
+
+  <div class="sig">
+    <div class="decl">shiaqa fetch [--force] [--ns INTEGER]...</div>
+    <div class="body">
+      <p>Download WikiShia into the local raw cache. Roughly 50&nbsp;MB and a few minutes.</p>
+      <p><code>--force</code> refetches even when the cache exists, and also refreshes
+      <code>redirects.json</code>. <code>--ns</code> may be repeated to override the configured
+      namespace list, e.g. <code>--ns 0 --ns 14</code>. Prints one line per namespace with the
+      page count.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa index [--text-only] [--embed-only] [--limit INTEGER]</div>
+    <div class="body">
+      <p>Build the search index. <strong>With no flags this wipes the database first</strong>
+      (see &sect;3.4) and then runs both phases.</p>
+      <p><code>--text-only</code> runs phase 1 alone: clean, chunk, rows and BM25 &mdash; still
+      destructive to existing vectors. <code>--embed-only</code> runs phase 2 alone and is
+      always safe; it embeds only chunks that have no vector yet. <code>--limit N</code> caps
+      phase 2 at N chunks, which is how you smoke-test an embedding change without committing
+      hours to it.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa prune</div>
+    <div class="body">
+      <p>Maintenance pass over an existing index: drops navigation and disambiguation pages
+      and any vectors orphaned by earlier edits, <em>without</em> discarding embeddings. Prints
+      the number of pages, chunks and orphan vectors removed.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa status</div>
+    <div class="body">
+      <p>A table of raw-cache counts per namespace, indexed pages, chunks, vectors with
+      percentage complete, build timestamp, Ollama health, database path and size, graph node
+      and edge counts, graph build time, and the graph settings currently in force.</p>
+      <p>It also reports the graph as <strong>stale</strong> when <code>kg.db</code> is older
+      than the newest file in the raw cache, so a graph built before a refetch cannot quietly
+      look current.</p>
+    </div>
+  </div>
+
+  <h3><span class="num">5.2</span>Query commands</h3>
+
+  <div class="sig">
+    <div class="decl">shiaqa search QUESTION [-k, --top-k INTEGER = 6] [--full]</div>
+    <div class="body">
+      <p>Retrieve passages without generating an answer. No model call for generation is made,
+      but the query <em>is</em> embedded, so Ollama must be reachable unless the index has no
+      vectors.</p>
+      <p>Prints reasoning chains with their predicate trail, graph facts, then each hit as
+      <code>[n] Title — Section (score, vec rank, bm25 rank)</code> with its URL and text.
+      <code>--full</code> prints whole chunks instead of the first 220 characters. Exits 1 when
+      nothing matches.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa ask QUESTION [-p, --profile TEXT] [-k, --top-k INTEGER]
+                    [--json] [--decompose]</div>
+    <div class="body">
+      <p>Ask a question and stream a cited answer.</p>
+      <p><code>--profile</code> takes <code>fast</code>, <code>quality</code>, or any pulled
+      Ollama tag passed straight through; the default comes from
+      <code>gen_default_profile</code>. <code>--top-k</code> overrides
+      <code>top_k_final</code> for this call. <code>--json</code> prints one JSON object
+      (non-streaming) identical to the <code>/ask</code> response body.
+      <code>--decompose</code> splits the question into at most
+      <code>decompose_max_parts</code> sub-questions first, at the cost of one extra model
+      call.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa serve [--host TEXT = "127.0.0.1"] [--port INTEGER = 8000] [--reload]</div>
+    <div class="body">
+      <p>Run the HTTP service with uvicorn, serving <code>shiaqa.api:app</code>.
+      <code>--reload</code> enables auto-reload for development. Binding to
+      <code>0.0.0.0</code> exposes an unauthenticated service on the network &mdash; there is
+      no auth layer in this project.</p>
+    </div>
+  </div>
+
+  <h3><span class="num">5.3</span>Knowledge-graph commands</h3>
+
+  <p>Every subcommand below opens <code>data/kg.db</code> and exits 1 with
+  <em>&ldquo;No graph yet. Run <code>shiaqa kg build</code>.&rdquo;</em> if it is missing.
+  Titles are resolved by substring match, shortest label first; when several entities match,
+  the others are listed so a wrong resolution is visible rather than silent.</p>
+
+  <div class="sig">
+    <div class="decl">shiaqa kg build [--jsonl-only]</div>
+    <div class="body">
+      <p>Extract the graph from the raw cache into <code>data/kg/</code> and
+      <code>data/kg.db</code>. Prints extraction counts, rows written per file, database counts
+      and elapsed time.</p>
+      <p><code>--jsonl-only</code> writes the JSONL files and the ontology snapshot but skips
+      loading <code>kg.db</code>. Any override that has stopped matching is reported at the end
+      under <em>Overrides needing attention</em>; that warning is never silenced, because a
+      correction that has quietly stopped applying leaves the graph looking curated when it is
+      not.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa kg stats [--top INTEGER = 12]</div>
+    <div class="body">
+      <p>Node, edge, typed-edge and link counts, then three tables: entities by class, typed
+      edges by predicate, and the unmapped infobox fields that carry links no predicate claims.
+      That last table is the curation worklist &mdash; the top of it is where to extend
+      <code>ontology.py</code>. <code>--top</code> sets rows per table.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa kg show TITLE [-n, --limit INTEGER = 25]</div>
+    <div class="body">
+      <p>Everything the graph records about one article: its classes, its URL, up to
+      <code>--limit</code> rendered one-line facts, and its categories. Facts are deduplicated,
+      because the corpus states many of them from both ends.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa kg chain TITLE [-h, --hops INTEGER = 2] [-n, --limit INTEGER = 12]
+                        [--deep-only]</div>
+    <div class="body">
+      <p>Walk outward from one article and narrate what the graph connects it to. Each line
+      carries its score, its hop count, the narrated sentence, the predicate trail (with
+      <code>(rev)</code> marking an edge read backwards) and the infobox fields the steps came
+      from.</p>
+      <p><code>--deep-only</code> keeps only paths of two hops or more &mdash; the composed
+      relations that exist in no single article. Uses <code>kg_beam_width</code> and
+      <code>kg_hub_degree_max</code> from configuration.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa kg path START END [-h, --hops INTEGER] [-n, --limit INTEGER = 3]</div>
+    <div class="body">
+      <p>How the graph connects two articles, strongest route first rather than merely
+      shortest. <code>--hops</code> defaults to <code>kg_connect_max_hops</code>.</p>
+      <p>Exits 1 when there is no typed route, and says why that can be the right answer:
+      routes through places and other hubs are refused on purpose, because a shared birthplace
+      connects hundreds of unrelated people.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa kg compare FIRST SECOND [-n, --limit INTEGER = 8]</div>
+    <div class="body">
+      <p>Line up what the graph records about two articles, predicate by predicate: each side's
+      objects and, where they overlap, a <em>both</em> line. No traversal at all &mdash; one
+      batched query, grouped by the rendered verb phrase. Exits 1 when the two share no
+      populated predicate.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">shiaqa kg viz [-o, --out TEXT] [--kind TEXT = "both"]</div>
+    <div class="body">
+      <p>Write self-contained HTML views of the graph, defaulting to
+      <code>&lt;data_dir&gt;/kg/viz</code>. <code>--kind</code> takes <code>explorer</code>,
+      <code>schema</code> or <code>both</code>; anything else exits 1.</p>
+      <p><code>explorer.html</code> shows one entity's typed neighbourhood at a time, with the
+      infobox field each edge came from. <code>schema.html</code> shows the class-level shape,
+      including the <code>(unclassed)</code> bucket, which is about a quarter of all edges and
+      is deliberately not hidden. Each file embeds its own data, so both survive a strict
+      content-security policy and open with no server.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== 6. HTTP API ====================== -->
+<section class="part" id="http">
+  <h2><span class="num">6</span>HTTP API</h2>
+
+  <p class="lede">FastAPI, four endpoints, one request model. Served by
+  <code>shiaqa serve</code>; OpenAPI at <code>/openapi.json</code> and Swagger UI at
+  <code>/docs</code>.</p>
+
+  <p>The application object is <code>shiaqa.api:app</code>, titled <em>ShiaQAService</em>,
+  version 0.1.0. A lifespan handler builds one <code>AnswerEngine</code> at startup, logs the
+  index counts, and closes the engine's HTTP clients at shutdown. If no index exists at
+  <code>db_path</code> the server still starts and logs a warning telling you to run
+  <code>shiaqa fetch &amp;&amp; shiaqa index</code>.</p>
+
+  <h3><span class="num">6.1</span>The request model</h3>
+
+  <p><code>AskRequest</code> is the body of all three POST endpoints.</p>
+
+  <table>
+    <thead><tr><th style="width:20%">Field</th><th style="width:22%">Type</th><th style="width:14%">Default</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>question</code></td><td><code>str</code>, 2&ndash;2000 chars</td><td><em>required</em></td>
+          <td>The question, in any language the generator handles.</td></tr>
+      <tr><td><code>profile</code></td><td><code>str | null</code></td><td><code>null</code></td>
+          <td><code>fast</code>, <code>quality</code>, or an explicit Ollama tag. <code>null</code> uses <code>gen_default_profile</code>.</td></tr>
+      <tr><td><code>top_k</code></td><td><code>int | null</code>, 1&ndash;20</td><td><code>null</code></td>
+          <td>Passages to keep after fusion. <code>null</code> uses <code>top_k_final</code>.</td></tr>
+      <tr><td><code>decompose</code></td><td><code>bool | null</code></td><td><code>null</code></td>
+          <td>Split the question first, at the cost of one extra model call. <code>null</code> uses the <code>decompose</code> setting.</td></tr>
+    </tbody>
+  </table>
+
+  <p>A value outside those bounds is rejected by Pydantic with <code>422 Unprocessable
+  Entity</code> before any work is done.</p>
+
+  <h3><span class="num">6.2</span>Endpoints</h3>
+
+  <div class="sig">
+    <div class="decl">GET /health <span class="ret">&rarr; 200 application/json</span></div>
+    <div class="body">
+      <p>Liveness plus a real readiness signal. <code>status</code> is <code>"ok"</code> only
+      when Ollama is reachable with the embedding model pulled <em>and</em> every chunk has a
+      vector; otherwise <code>"degraded"</code>, which is the honest state while embeddings are
+      still building &mdash; BM25 and title matching already work, the semantic channel does not
+      yet.</p>
+<pre><code>{
+  "status":            "ok" | "degraded",
+  "ollama":            str,            <span class="c">// "ok", or why not</span>
+  "index":             {"pages": int, "chunks": int, "vec_chunks": int},
+  "vectors_complete":  bool,
+  "vectors_progress":  float,          <span class="c">// percent, one decimal</span>
+  "models":            {"embed": str, "fast": str, "quality": str}
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">POST /search  &lt;- AskRequest <span class="ret">&rarr; 200 application/json</span></div>
+    <div class="body">
+      <p>Retrieval only, no generation. Fast, and the endpoint to tune against.
+      <code>profile</code> is accepted and ignored.</p>
+<pre><code>{
+  "question":           str,
+  "retrieval_seconds":  float,
+  "context_tokens":     int,
+  "chains":             [str],   <span class="c">// narrated multi-hop relations</span>
+  "kg_facts":           [str],   <span class="c">// one-line structured facts</span>
+  "sub_questions":      [str],   <span class="c">// non-empty only when decompose ran</span>
+  "hits": [
+    {
+      "n": int, "title": str, "section": str, "url": str,
+      "kind": "summary" | "infobox" | "body",
+      "score": float,                    <span class="c">// fused RRF score, 5 dp</span>
+      "vec_rank": int | null,            <span class="c">// rank in the dense channel</span>
+      "bm25_rank": int | null,
+      "text": str
+    }
+  ]
+}</code></pre>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">POST /ask  &lt;- AskRequest <span class="ret">&rarr; 200 application/json</span></div>
+    <div class="body">
+      <p>Retrieve, then generate one complete answer. Blocking: on CPU this is tens of seconds,
+      so the streaming endpoint is usually the better choice for anything a person is waiting
+      on. The body is <code>Answer.to_dict()</code>.</p>
+<pre><code>{
+  "question": str,
+  "answer":   str,              <span class="c">// prose with [n] citations</span>
+  "model":    str,              <span class="c">// the resolved Ollama tag</span>
+  "sources":  [{"n": int, "title": str, "section": str,
+                "url": str, "kind": str}],
+  "stats": {
+    "context_tokens":     int,
+    "retrieval_seconds":  float,   <span class="c">// 3 dp</span>
+    "generation_seconds": float,   <span class="c">// 2 dp</span>
+    "output_tokens":      int,
+    "tokens_per_second":  float    <span class="c">// 1 dp</span>
+  }
+}</code></pre>
+      <p>When retrieval finds nothing, the endpoint still returns 200 with a plainly worded
+      <code>answer</code> saying so and an empty <code>sources</code> list. No model call is
+      made in that case.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl">POST /ask/stream  &lt;- AskRequest <span class="ret">&rarr; 200 text/event-stream</span></div>
+    <div class="body">
+      <p>The same work, streamed as Server-Sent Events: one <code>data:</code> line per event
+      carrying compact JSON, terminated by a blank line. Response headers set
+      <code>Cache-Control: no-cache</code> and <code>X-Accel-Buffering: no</code> so an
+      intermediary cannot buffer the stream into uselessness.</p>
+      <p>Sources are sent <em>before</em> generation starts. That ordering is deliberate on this
+      hardware: the caller can render where the answer will come from within a second while the
+      model grinds on at 5&ndash;12 tokens per second.</p>
+    </div>
+  </div>
+
+  <h3><span class="num">6.3</span>Streaming event shapes</h3>
+
+  <p>Exactly one <code>sources</code> event arrives first, then zero or more
+  <code>delta</code> events, then exactly one <code>done</code> event.</p>
+
+  <table>
+    <thead><tr><th style="width:18%">type</th><th>Payload</th></tr></thead>
+    <tbody>
+      <tr><td><code>sources</code></td><td class="wrap"><code>sources</code> (list, as in <code>/ask</code>), <code>chains</code>, <code>sub_questions</code>, <code>retrieval_seconds</code>, <code>context_tokens</code></td></tr>
+      <tr><td><code>delta</code></td><td class="wrap"><code>text</code> &mdash; the next piece of the answer, to be concatenated verbatim</td></tr>
+      <tr><td><code>done</code></td><td class="wrap"><code>model</code>, <code>output_tokens</code>, <code>generation_seconds</code> (absent when nothing was generated)</td></tr>
+    </tbody>
+  </table>
+
+<pre><code>curl -N -X POST localhost:8000/ask/stream \
+  -H 'content-type: application/json' \
+  -d '{"question": "Who compiled al-Kafi?", "profile": "fast"}'
+
+data: {"type": "sources", "sources": [...], "chains": [], ...}
+
+data: {"type": "delta", "text": "According"}
+
+data: {"type": "done", "model": "llama3.2:3b", "output_tokens": 118, ...}</code></pre>
+
+  <p>If retrieval finds nothing, the stream still emits its <code>sources</code> event (with an
+  empty list), then a single <code>delta</code> carrying the &ldquo;nothing found&rdquo; text,
+  then <code>done</code> with <code>output_tokens: 0</code>.</p>
+
+  <h3><span class="num">6.4</span>Status codes and errors</h3>
+
+  <table>
+    <thead><tr><th style="width:16%">Code</th><th>When</th></tr></thead>
+    <tbody>
+      <tr><td><code>200</code></td><td>Normal, including &ldquo;nothing retrieved&rdquo; and &ldquo;degraded&rdquo;.</td></tr>
+      <tr><td><code>422</code></td><td>Body fails validation &mdash; question too short or too long, <code>top_k</code> out of 1&ndash;20.</td></tr>
+      <tr><td><code>503</code></td><td>A request arrived before the lifespan handler finished building the engine.</td></tr>
+      <tr><td><code>500</code></td><td>Ollama refused or is unreachable. The upstream error is raised by <code>raise_for_status()</code> and surfaces as a server error; <code>/health</code> is the endpoint that reports this deliberately.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <span class="tag">No authentication</span>
+    <p>The service has no auth, no rate limiting and no CORS configuration. It is built to
+    listen on <code>127.0.0.1</code>. Put it behind something before exposing it.</p>
+  </div>
+</section>
+
+<!-- ====================== 7. PYTHON API ====================== -->
+<section class="part" id="python">
+  <h2><span class="num">7</span>Python API</h2>
+
+  <p class="lede">The importable surface, module by module. Every constructor takes an optional
+  <code>Settings</code>, so nothing is bound to global state and tests inject their own.</p>
+
+<pre><code><span class="c"># the two-line version: retrieve and answer</span>
+import asyncio
+from shiaqa.rag.answer import AnswerEngine
+
+async def main():
+    engine = AnswerEngine()
+    try:
+        ans = await engine.answer("Who compiled al-Kafi?", profile="fast")
+        print(ans.text)
+        for src in ans.sources():
+            print(src["n"], src["title"], src["url"])
+    finally:
+        await engine.aclose()
+
+asyncio.run(main())</code></pre>
+
+<pre><code><span class="c"># retrieval alone, no event loop, no generation</span>
+from shiaqa.rag.retrieve import Retriever
+
+res = Retriever().search_sync("Who compiled al-Kafi?", top_k=6)
+print(res.context_tokens, [h.label for h in res.hits])</code></pre>
+
+  <h3><span class="num">7.1</span>shiaqa.config and shiaqa.log</h3>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> Settings(BaseSettings)
+<span class="kw">def</span> get_settings() <span class="ret">-&gt; Settings</span>   <span class="c"># lru_cache'd</span></div>
+    <div class="body">
+      <p>Every tunable in the project. Reads <code>SHIAQA_</code>-prefixed environment
+      variables and <code>.env</code>; unknown keys are ignored. <code>get_settings()</code>
+      returns one cached instance and creates <code>data/</code>, <code>data/raw/</code> and
+      <code>data/kg/</code> as a side effect. The full field list is &sect;8.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> Settings.gen_model(profile: str | None = None) <span class="ret">-&gt; str</span></div>
+    <div class="body">
+      <p>Resolve a profile to an Ollama tag. <code>fast</code>/<code>small</code>/<code>llama</code>
+      &rarr; <code>gen_model_fast</code>; <code>quality</code>/<code>big</code>/<code>qwen</code>
+      &rarr; <code>gen_model_quality</code>; anything else is passed through unchanged, which is
+      what lets a caller name any pulled tag. <code>None</code> uses
+      <code>gen_default_profile</code>.</p>
+    </div>
+  </div>
+
+  <p>Four paths are computed properties rather than fields, so they always follow
+  <code>data_dir</code>: <code>raw_dir</code>, <code>db_path</code>, <code>kg_dir</code> and
+  <code>kg_db_path</code>.</p>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> get_logger(name: str = "shiaqa") <span class="ret">-&gt; logging.Logger</span></div>
+    <div class="body"><p><code>shiaqa.log</code> &mdash; the one logger factory every module uses.</p></div>
+  </div>
+
+  <h3><span class="num">7.2</span>shiaqa.rag &mdash; answering</h3>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> AnswerEngine(settings: Settings | None = None,
+                  retriever: Retriever | None = None)</div>
+    <div class="body">
+      <p>Retrieval plus generation against a local Ollama. Owns a lazily created
+      <code>httpx.AsyncClient</code> with a 900-second timeout, because a 7B model on CPU can
+      take minutes for one answer.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">async def</span> retrieve(question: str, top_k: int | None = None,
+                   decompose: bool | None = None) <span class="ret">-&gt; tuple[Retrieval, float]</span></div>
+    <div class="body">
+      <p>Retrieve only, returning the result and the elapsed seconds. <code>decompose=None</code>
+      falls back to the <code>decompose</code> setting; when it is on, the question is split and
+      each part retrieved separately.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">async def</span> answer(question: str, profile: str | None = None,
+                 top_k: int | None = None,
+                 decompose: bool | None = None) <span class="ret">-&gt; Answer</span></div>
+    <div class="body">
+      <p>One complete answer. When retrieval returns no hits, no model call is made and the
+      returned <code>Answer</code> carries the fixed <code>NO_CONTEXT</code> text with an empty
+      <code>hits</code> list.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">async def</span> stream(question: str, profile: str | None = None,
+                 top_k: int | None = None,
+                 decompose: bool | None = None) <span class="ret">-&gt; AsyncIterator[dict]</span></div>
+    <div class="body">
+      <p>Yields the same events the SSE endpoint serialises: one <code>sources</code> dict, then
+      <code>delta</code> dicts, then one <code>done</code>. The dicts are yielded as Python
+      objects; the API layer is what turns them into <code>data:</code> lines.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">async def</span> aclose() <span class="ret">-&gt; None</span></div>
+    <div class="body">
+      <p>Close the generation client and the embedder's clients. Always call it &mdash; the CLI
+      does so in a <code>finally</code> block, and the API does so in its lifespan handler.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">@dataclass class</span> Answer
+    question: str;  text: str;  model: str
+    hits: list[Hit];  context_tokens: int
+    retrieval_seconds: float;  generation_seconds: float;  eval_count: int
+
+    <span class="kw">@property</span> tokens_per_second <span class="ret">-&gt; float</span>
+    <span class="kw">def</span> sources() <span class="ret">-&gt; list[dict]</span>
+    <span class="kw">def</span> to_dict() <span class="ret">-&gt; dict</span></div>
+    <div class="body">
+      <p><code>sources()</code> numbers the hits from 1, matching the <code>[n]</code> citation
+      markers in <code>text</code>. <code>to_dict()</code> is exactly the <code>/ask</code>
+      response body, with the timings already rounded.</p>
+    </div>
+  </div>
+
+  <h3><span class="num">7.3</span>shiaqa.rag.retrieve</h3>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> Retriever(settings: Settings | None = None,
+                store: Store | None = None,
+                embedder: Embedder | None = None,
+                kg: KgStore | None = None)</div>
+    <div class="body">
+      <p>Hybrid retrieval over four channels. The knowledge graph is attached automatically
+      when <code>kg.db</code> exists and is populated <em>and</em> something asks for it
+      (<code>kg_enabled</code>, a non-zero <code>weight_graph</code>, or
+      <code>kg_facts_in_context</code>); otherwise <code>kg_active</code> is <code>False</code>
+      and retrieval behaves exactly as it did before the graph existed.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">async def</span> search(question: str, top_k: int | None = None) <span class="ret">-&gt; Retrieval</span>
+<span class="kw">def</span> search_sync(question: str, top_k: int | None = None) <span class="ret">-&gt; Retrieval</span></div>
+    <div class="body">
+      <p>The same pipeline twice, differing only in how the query embedding is fetched. Use
+      <code>search_sync</code> from scripts and the CLI; use <code>search</code> inside an event
+      loop.</p>
+      <p>Both run BM25 over FTS5, the title/alias channel, the dense channel (skipped entirely
+      when the index holds no vectors) and the graph channel, fuse them with weighted RRF,
+      diversify so that no article contributes more than <code>max_chunks_per_page</code>
+      chunks, and pack the context to <code>context_token_budget</code>.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">@property</span> Retriever.kg_active <span class="ret">-&gt; bool</span></div>
+    <div class="body"><p>Whether a populated graph is attached to this retriever.</p></div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">@dataclass class</span> Retrieval
+    question: str;  hits: list[Hit];  context: str
+    context_tokens: int;  vector_used: bool
+    kg_facts: list[str];  kg_chains: list[str];  kg_paths: list
+    sub_questions: list[str]
+
+    <span class="kw">@property</span> sources <span class="ret">-&gt; list[dict]</span></div>
+    <div class="body">
+      <p><code>context</code> is the assembled prompt context: an optional <code>[KG]</code>
+      facts block, then an optional <code>[KG-PATH]</code> chain block, then the numbered
+      excerpts. <code>kg_chains</code> and <code>kg_paths</code> are the same length and the
+      same order &mdash; the strings reach the prompt, the objects keep the predicate and
+      infobox field per step so a caller can show <em>why</em> a chain was drawn. A
+      <code>kg_paths</code> entry is <code>None</code> where the line came from a comparison
+      rather than a single walk. <code>sources</code> groups hits by URL, collecting their
+      sections.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> to_fts_query(question: str) <span class="ret">-&gt; str</span></div>
+    <div class="body">
+      <p>Turn a natural question into valid, forgiving FTS5 syntax: stopwords dropped, terms
+      quoted, everything OR-ed. AND-ing a whole sentence returns nothing, and BM25 already
+      rewards documents matching more of the rare terms.</p>
+    </div>
+  </div>
+
+  <p>Internally, <code>_rrf(rankings)</code> implements weighted reciprocal rank fusion with a
+  per-channel RRF constant, and <code>_fuse(...)</code>, <code>_graph_channel(...)</code>,
+  <code>_graph_paths(...)</code>, <code>_graph_chains(...)</code>,
+  <code>_graph_facts(...)</code> and <code>_pack_context(...)</code> are the stages a
+  retrieval change usually touches.</p>
+
+  <h3><span class="num">7.4</span>shiaqa.rag.decompose</h3>
+
+  <div class="sig">
+    <div class="decl">Chat = Callable[[str], Awaitable[str]]
+
+<span class="kw">class</span> Decomposer(chat: Chat, max_parts: int = 3)
+    <span class="kw">async def</span> split(question: str) <span class="ret">-&gt; list[str]</span></div>
+    <div class="body">
+      <p>Splits a question into independent factual sub-questions, given any async
+      <code>chat(prompt) -&gt; str</code> callable. The callable is injected rather than reached
+      for through <code>AnswerEngine</code>, so tests exercise every failure mode without an
+      HTTP client or an Ollama.</p>
+      <p>Every failure path returns <code>[]</code>: a timeout, prose instead of a list, an
+      answer instead of a split, or a single sub-question. The caller then runs the ordinary
+      single-shot flow, so decomposition can never break the default path.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> parse(raw: str, max_parts: int = 3) <span class="ret">-&gt; list[str]</span></div>
+    <div class="body">
+      <p>Pull sub-questions out of whatever the model actually said: numbered lines, bullets,
+      code fences and preambles are all handled. Returns <code>[]</code> for anything unusable,
+      including a single sub-question &mdash; which is not a decomposition and would cost a
+      model call to learn nothing.</p>
+    </div>
+  </div>
+</section>
+
+<section id="python2">
+  <h3><span class="num">7.5</span>shiaqa.store.sqlite_store</h3>
+
+  <p>One SQLite file holds all three indexes &mdash; <code>chunks</code> rows, an FTS5 BM25
+  index and a <code>sqlite-vec</code> vector table &mdash; written in the same transaction so
+  the lexical and semantic views cannot drift apart.</p>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> Store(settings: Settings | None = None, path: Path | None = None)</div>
+    <div class="body">
+      <p>Opens the database, loads the <code>sqlite-vec</code> extension and sets WAL journaling.
+      <code>path</code> overrides <code>settings.db_path</code>, which is how tests point at a
+      temporary file.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">@dataclass class</span> Hit
+    chunk_id: int;  page_id: int;  title: str;  url: str
+    section: str;  kind: str;  text: str;  tokens: int;  score: float
+    vec_rank: int | None = None;  bm25_rank: int | None = None
+
+    <span class="kw">@property</span> label <span class="ret">-&gt; str</span>   <span class="c"># "Title — Section", or just "Title"</span></div>
+    <div class="body">
+      <p>One retrieved chunk with its provenance and its rank in each channel that found it.
+      <code>kind</code> is <code>summary</code>, <code>infobox</code> or <code>body</code>.</p>
+    </div>
+  </div>
+
+  <h4>Lifecycle</h4>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> init_schema() <span class="ret">-&gt; None</span>
+<span class="kw">def</span> reset() <span class="ret">-&gt; None</span>            <span class="c"># DESTRUCTIVE — drops every table, vectors included</span>
+<span class="kw">def</span> close() <span class="ret">-&gt; None</span>
+<span class="kw">def</span> commit() <span class="ret">-&gt; None</span>
+<span class="kw">def</span> set_meta(key: str, value: str) <span class="ret">-&gt; None</span>
+<span class="kw">def</span> get_meta(key: str, default: str | None = None) <span class="ret">-&gt; str | None</span>
+<span class="kw">def</span> counts() <span class="ret">-&gt; dict[str, int]</span>   <span class="c"># pages, chunks, vec_chunks</span></div>
+    <div class="body">
+      <p><code>reset()</code> drops <code>vec_chunks</code>, <code>chunks_fts</code>,
+      <code>chunks</code>, <code>pages</code> and <code>meta</code>, then recreates the schema.
+      It is the call behind the destructive <code>shiaqa index</code>. Known meta keys are
+      <code>embed_model</code>, <code>built_at</code> and <code>namespaces</code>.</p>
+    </div>
+  </div>
+
+  <h4>Writing</h4>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> add_page(page, aliases: list[str]) <span class="ret">-&gt; None</span>
+<span class="kw">def</span> add_chunks(chunks: Iterable[Chunk], aliases: str = "") <span class="ret">-&gt; list[int]</span>
+<span class="kw">def</span> add_vectors(pairs: Sequence[tuple[int, Sequence[float]]]) <span class="ret">-&gt; None</span>
+<span class="kw">def</span> delete_page(page_id: int) <span class="ret">-&gt; int</span>
+<span class="kw">def</span> chunks_missing_vectors() <span class="ret">-&gt; list[sqlite3.Row]</span></div>
+    <div class="body">
+      <p><code>add_chunks</code> writes the row and its FTS5 entry together and returns the new
+      chunk ids. Aliases ride along in the lexical index only, so a query for
+      <em>Abu Turab</em> finds the Imam Ali article without polluting the text that gets
+      embedded or shown to the model.</p>
+      <p><code>delete_page</code> returns the number of chunks removed. Use it rather than a
+      bare <code>DELETE</code>: <code>chunks_fts</code> is contentless, so FTS5 rows must be
+      retired with the special <code>'delete'</code> command replaying the indexed values, and a
+      plain delete raises <code>OperationalError</code>.</p>
+      <p><code>chunks_missing_vectors()</code> is what makes phase 2 resumable, and
+      <code>add_vectors</code> expects vectors already L2-normalised &mdash; that is what makes
+      <code>sqlite-vec</code>'s Euclidean ranking equivalent to cosine.</p>
+    </div>
+  </div>
+
+  <h4>Reading</h4>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> vector_search(embedding: Sequence[float], k: int) <span class="ret">-&gt; list[tuple[int, float]]</span>
+<span class="kw">def</span> bm25_search(query: str, k: int) <span class="ret">-&gt; list[tuple[int, float]]</span></div>
+    <div class="body">
+      <p><code>(chunk_id, distance)</code> nearest neighbours, and <code>(chunk_id, score)</code>
+      BM25 hits with column weights title 6.0, section 2.0, aliases 4.0, text 1.0. Malformed
+      FTS5 syntax returns <code>[]</code> rather than raising, so a user's question can never
+      crash retrieval.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> title_candidates(terms: set[str], fts_query: str,
+                     pages: int, per_page: int) <span class="ret">-&gt; tuple[list[int], list[int]]</span>
+<span class="kw">def</span> title_search(terms: set[str], fts_query: str,
+                 pages: int, per_page: int) <span class="ret">-&gt; list[int]</span></div>
+    <div class="body">
+      <p>Chunks from the articles a question actually <em>names</em>, plus the page ranking
+      behind them. Recall comes from FTS over titles and 35k redirect aliases; precision comes
+      from re-scoring each candidate on <em>coverage</em> &mdash; how much of the article's own
+      name the question accounts for &mdash; with redirect count as a prominence prior to break
+      ties between same-named figures. Matched articles contribute their fact box and summary
+      first, round-robined so one page cannot own the list.</p>
+      <p>The page ids come back because the graph channel seeds from exactly these pages;
+      re-running the 600-row recall query to rediscover them would be pure waste.
+      <code>title_search</code> is the older single-value form.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> page_chunks(page_ids: Sequence[int], per_page: int,
+                kinds: Sequence[str] = ("infobox", "summary")) <span class="ret">-&gt; list[int]</span>
+<span class="kw">def</span> hydrate(scored: Sequence[tuple[int, float]],
+            ranks: dict[int, tuple[int | None, int | None]] | None = None) <span class="ret">-&gt; list[Hit]</span></div>
+    <div class="body">
+      <p><code>page_chunks</code> returns lead chunks for pages reached indirectly &mdash; fact
+      box before summary, round-robined across pages. <code>hydrate</code> turns scored chunk
+      ids into <code>Hit</code> objects, attaching the per-channel ranks when given.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> normalise_terms(text: str) <span class="ret">-&gt; set[str]</span></div>
+    <div class="body">
+      <p>Fold a title or a query into comparable bare terms: lowercased, parenthetical
+      qualifiers dropped, diacritics stripped, noise words removed. This is what lets
+      <em>Husayn</em> and <em>Ḥusayn</em> compare equal.</p>
+    </div>
+  </div>
+
+  <h3><span class="num">7.6</span>shiaqa.kg.store</h3>
+
+  <p><code>data/kg.db</code> &mdash; the derived, queryable side of the graph. Rows reference
+  <code>page_id</code>, never <code>chunk_id</code>: MediaWiki page ids survive a reindex, and
+  an autoincrement <code>chunks.id</code> does not.</p>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> KgStore(settings: Settings | None = None, path: Path | None = None)
+    <span class="kw">def</span> init_schema() / reset() / close() <span class="ret">-&gt; None</span>
+    <span class="kw">def</span> set_meta(key, value) / get_meta(key, default=None)
+    <span class="kw">def</span> counts() <span class="ret">-&gt; dict[str, int]</span>    <span class="c"># nodes, edges, links, typed_edges</span>
+    <span class="kw">@property</span> is_populated <span class="ret">-&gt; bool</span>
+    <span class="kw">def</span> load(nodes: Iterable[dict], edges: Iterable[dict],
+             links: Iterable[dict]) <span class="ret">-&gt; None</span></div>
+    <div class="body">
+      <p>Tables are <code>nodes</code>, <code>node_classes</code>, <code>edges</code>,
+      <code>links</code> and <code>meta</code>. Both edge directions are indexed, which is what
+      lets traversal read an edge backwards instead of materialising an inverse row for every
+      fact. <code>reset()</code> here is safe &mdash; everything is re-derived from the JSONL in
+      seconds.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> node(node_id: str) <span class="ret">-&gt; sqlite3.Row | None</span>
+<span class="kw">def</span> node_for_page(page_id: int) <span class="ret">-&gt; str | None</span>
+<span class="kw">def</span> find_by_label(label: str, limit: int = 10) <span class="ret">-&gt; list[sqlite3.Row]</span>
+<span class="kw">def</span> classes_of(node_id: str) <span class="ret">-&gt; list[str]</span>
+<span class="kw">def</span> classes_for(node_ids: Sequence[str]) <span class="ret">-&gt; dict[str, list[str]]</span></div>
+    <div class="body">
+      <p>Node ids are <code>page:&lt;page_id&gt;</code> for entities, plus class and date nodes.
+      <code>find_by_label</code> is a substring match ordered by label length, so the shortest
+      &mdash; usually the canonical &mdash; match comes first. <code>classes_for</code> is the
+      batched sibling of <code>classes_of</code>; batching matters because traversal asks about
+      dozens of nodes at once.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> edges_from(node_ids: Sequence[str],
+               include_taxonomy: bool = False) <span class="ret">-&gt; dict[str, list[dict]]</span>
+<span class="kw">def</span> edges_of(node_id: str, include_taxonomy: bool = False) <span class="ret">-&gt; list[dict]</span></div>
+    <div class="body">
+      <p>Every typed edge touching each node, one query pair for the whole batch. Each edge is
+      <code>{"dir": "out"|"in", "p", "other", "label", "kind", "page_id", "field"}</code>, where
+      <code>field</code> is the infobox field it came from and <code>page_id</code> is carried
+      straight off the join &mdash; that field is the whole point, because it lets a hop be
+      ranked without a <code>node()</code> lookup per edge.</p>
+      <p>Results are sorted by predicate priority, and the SQL <code>ORDER BY</code> is
+      load-bearing rather than cosmetic: ties on priority decide which neighbours survive a beam,
+      so stating the order makes the ranking a contract instead of an index artefact.
+      <code>include_taxonomy=True</code> also returns <code>instance_of</code> and
+      <code>subclass_of</code>.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> degrees(node_ids: Sequence[str]) <span class="ret">-&gt; dict[str, int]</span>
+<span class="kw">def</span> prominence(node_ids: Sequence[str]) <span class="ret">-&gt; dict[str, int]</span></div>
+    <div class="body">
+      <p><code>degrees</code> is typed degree in <em>both</em> directions &mdash; the fan-out
+      traversal actually faces. <code>prominence</code> adds redirect count to that degree and is
+      a tie-break, not a score: it is how the walker chooses between two equally scored paths.
+      Note it rewards the same property <code>hub_degree_max</code> refuses to travel through,
+      which is consistent rather than contradictory &mdash; prominence is good to land on and
+      ruinous to pass through.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> neighbour_pages(seed_node_ids: Sequence[str], limit: int) <span class="ret">-&gt; list[int]</span>
+<span class="kw">def</span> facts(node_id: str, predicates: dict, limit: int) <span class="ret">-&gt; list[str]</span></div>
+    <div class="body">
+      <p><code>neighbour_pages</code> returns page ids one typed hop from the seeds, best
+      predicates first, round-robined across seeds. This is the one-hop graph channel, kept
+      exactly as it was so that <code>kg_max_hops = 1</code> is byte-identical to the
+      pre-multi-hop system.</p>
+      <p><code>facts</code> renders a node's edges as readable one-line statements, deduplicated
+      &mdash; the same fact is often asserted from both ends, as when al-Kulayni's
+      <code>works</code> names al-Kafi and al-Kafi's <code>author</code> names al-Kulayni.
+      <code>predicates</code> is <code>Ontology().predicates</code>.</p>
+    </div>
+  </div>
+</section>
+
+<section id="python3">
+  <h3><span class="num">7.7</span>shiaqa.kg.paths</h3>
+
+  <p>Multi-hop traversal. All of it is pure SQLite &mdash; no model calls &mdash; and costs
+  about 10&nbsp;ms at retrieval scale, which is what makes it viable on a CPU-only box.</p>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">@dataclass(frozen=True) class</span> Step
+    p: str;  direction: "out" | "in";  src: str;  dst: str
+    dst_label: str | None;  dst_kind: str | None      <span class="c"># entity | class | date</span>
+    dst_page_id: int | None;  field: str | None       <span class="c"># the infobox field</span>
+
+    <span class="kw">@property</span> stored <span class="ret">-&gt; tuple[str, str, str]</span>   <span class="c"># the edge as kg.db holds it</span>
+    <span class="kw">def</span> as_edge() <span class="ret">-&gt; dict</span>                   <span class="c"># the edges_of shape, for render</span></div>
+    <div class="body">
+      <p>One traversed edge, with everything needed to rank it or explain it.
+      <code>direction</code> is relative to the node departed from, so <code>stored</code> puts
+      the triple back the way the database holds it regardless of which way the walk went.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">@dataclass(frozen=True) class</span> Path
+    seed: str;  seed_label: str;  steps: tuple[Step, ...]
+    score: float;  shape: str = "chain"     <span class="c"># chain | connect</span>
+
+    <span class="kw">@property</span> hops / end / end_label / end_page_id / nodes</div>
+    <div class="body">
+      <p>A scored route. <code>shape</code> distinguishes a walk outward from a route found
+      between two named articles; the distinction matters to callers, because for a
+      <code>connect</code> path the interesting article is usually the <em>middle</em>, not the
+      end &mdash; the end is the other article the question already named.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> expand(kg: KgStore, seed_node_ids: Sequence[str], predicates: dict, *,
+           max_hops: int = 2, beam: int = 24, limit: int = 12,
+           no_transit: frozenset[str] = NO_TRANSIT,
+           hub_degree_max: int = HUB_DEGREE_MAX) <span class="ret">-&gt; list[Path]</span></div>
+    <div class="body">
+      <p>Best-scoring paths up to <code>max_hops</code> out from the seeds. The final selection
+      is round-robined across <em>both</em> seed and hop depth, not score-ordered: every one-hop
+      path outranks every two-hop path by construction, so a flat truncation would spend the
+      whole budget on first-hop articles and leave the chain block empty precisely when it
+      matters.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> connect(kg: KgStore, a: str, b: str, predicates: dict, *,
+            max_hops: int = 3, beam: int = 24, limit: int = 3,
+            no_transit: frozenset[str] = NO_TRANSIT,
+            hub_degree_max: int = HUB_DEGREE_MAX) <span class="ret">-&gt; list[Path]</span></div>
+    <div class="body">
+      <p>Typed paths between two named entities, <em>ranked</em> rather than merely shortest.
+      That matters more than it sounds: this corpus joins al-Mufid and al-Tusi at length two
+      both through a shared teacher and through a shared city, and a shortest-path search
+      returns whichever it reaches first. Longer routes between the same pair are dropped as
+      detours rather than offered as alternatives.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> compare(kg: KgStore, a: str, b: str, predicates: dict, *,
+            limit: int = 6) <span class="ret">-&gt; Comparison | None</span></div>
+    <div class="body">
+      <p>Predicates asserted of both entities, aligned side by side. No traversal &mdash; one
+      batched call, grouped by the rendered verb phrase so that reciprocal pairs fold together.
+      Returns <code>None</code> when the two share no populated predicate, which is data rather
+      than a judgement call. A <code>Comparison</code> holds
+      <code>a, a_label, b, b_label, rows</code>; each <code>ComparisonRow</code> holds
+      <code>p, direction, label, a_objects, b_objects, shared</code>.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> narrate(path: Path, predicates: dict,
+            persons: set[str] | None = None) <span class="ret">-&gt; str | None</span>
+<span class="kw">def</span> narrate_comparison(cmp: Comparison, limit_objects: int = 3) <span class="ret">-&gt; list[str]</span>
+<span class="kw">def</span> person_nodes(kg: KgStore, node_ids: Sequence[str]) <span class="ret">-&gt; set[str]</span></div>
+    <div class="body">
+      <p><code>narrate</code> renders a path as one English sentence, chaining with a relative
+      pronoun while the steps read forwards. A step that cannot be read from the anchor's side
+      <em>breaks</em> the sentence into a new clause rather than being chained: 53 of the 69
+      predicates declare no inverse, and chaining one regardless would state the relation
+      backwards and put a quietly false sentence in the prompt.</p>
+      <p><code>person_nodes</code> tells the narrator which nodes are people, so it can choose
+      &ldquo;who&rdquo; over &ldquo;which&rdquo;.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> tier(p: str) <span class="ret">-&gt; int</span>
+<span class="kw">def</span> score_steps(steps: Sequence[Step]) <span class="ret">-&gt; float</span>
+<span class="kw">def</span> canonical(stored: tuple[str, str, str], predicates: dict) <span class="ret">-&gt; tuple[str, str, str]</span></div>
+    <div class="body">
+      <p><code>score_steps</code> is hop decay times the weight of every predicate travelled.
+      <code>canonical</code> folds an edge with its reciprocal onto one key: the corpus states
+      1,278 facts from both ends, and a beam that admits both spends two slots on one relation
+      and halves its own width.</p>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <span class="tag">Two guards, and neither is redundant</span>
+    <p><code>NO_TRANSIT</code> names predicates a chain may land on but never continue through
+    &mdash; without it, <em>al-Mufid born_in Baghdad studied_in al-Tusi</em> is a real two-hop
+    path on this corpus, and it is worthless. <code>hub_degree_max</code> stops a chain routing
+    through a node of high degree. Places need the first; the biggest hubs are <em>people</em>
+    reached by <code>taught_by</code>, <code>companion_of</code> and <code>father</code> &mdash;
+    exactly the predicates multi-hop questions turn on, which can never be refused by name.
+    Removing either guard leaves the other looking sufficient right up until it is not.</p>
+  </div>
+
+  <h3><span class="num">7.8</span>shiaqa.kg &mdash; build, ontology, render, viz</h3>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> build(settings: Settings | None = None,
+          jsonl_only: bool = False) <span class="ret">-&gt; BuildReport</span>
+<span class="kw">def</span> load_db(settings: Settings | None = None) <span class="ret">-&gt; dict[str, int]</span>
+<span class="kw">def</span> read_jsonl(path: Path) <span class="ret">-&gt; Iterator[dict]</span></div>
+    <div class="body">
+      <p>Full rebuild, cheap enough (~15&nbsp;s) that there is no resumable phase. Writes
+      <code>nodes.jsonl</code>, <code>edges.jsonl</code>, <code>links.jsonl</code>,
+      <code>unmapped.jsonl</code> and <code>ontology.json</code>, then rebuilds
+      <code>kg.db</code> unless <code>jsonl_only</code>. <code>BuildReport</code> carries
+      <code>extract</code>, <code>files</code>, <code>db_counts</code>, <code>seconds</code> and
+      <code>overrides</code>.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> Extractor(settings=None, ontology=None, overrides=None)
+    <span class="kw">def</span> run() <span class="ret">-&gt; Extraction</span>
+    <span class="kw">def</span> resolve(raw_target: str) <span class="ret">-&gt; str | None</span>
+    <span class="kw">def</span> node_for(title: str) <span class="ret">-&gt; str | None</span>
+    <span class="kw">def</span> resolve_node(title: str) <span class="ret">-&gt; str | None</span></div>
+    <div class="body">
+      <p>The extraction pass over <code>data/raw/</code>. <code>Extraction</code> holds
+      <code>nodes</code>, <code>edges</code>, <code>links</code>, <code>unmapped</code>,
+      <code>report</code> and <code>overrides</code>.</p>
+      <p>This is deliberately a <em>second</em> pass rather than a hook into ingest:
+      <code>clean._parse_infobox</code> flattens <code>[[Imam al-Mahdi (a)]]</code> to bare text
+      and discards the target, and widening that return type would change the
+      <code>kind='infobox'</code> chunk text that is already embedded &mdash; silently
+      invalidating every stored vector.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> Ontology()
+    .classes: dict[str, tuple[str, ...]]
+    .predicates: dict[str, Predicate]
+    <span class="kw">def</span> classes_for(template: str) <span class="ret">-&gt; list[str]</span>
+    <span class="kw">def</span> predicate_for(raw_field: str, subject_classes: set[str]) <span class="ret">-&gt; Predicate | None</span>
+    <span class="kw">def</span> is_noise(raw_field: str) <span class="ret">-&gt; bool</span>
+    <span class="kw">def</span> snapshot() <span class="ret">-&gt; dict</span></div>
+    <div class="body">
+      <p>The curation: 17 classes and 69 predicates, mapped from infobox template and field
+      names. It <strong>validates itself on construction</strong> &mdash; a predicate whose
+      <code>inverse</code> does not exist, or a field claimed by two predicates without disjoint
+      domains, raises <code>ValueError</code> at import rather than silently mis-typing edges.</p>
+      <p>A <code>Predicate</code> is <code>name, label, fields, range ("entity"|"date"),
+      inverse, domain, range_classes</code>. Extend the table from the top of
+      <code>data/kg/unmapped.jsonl</code>, which lists every infobox field carrying links that no
+      predicate claims.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">@dataclass(frozen=True) class</span> EdgeOverride
+    action: "drop" | "add";  subject: str;  predicate: str
+    object: str | None;  note: str
+
+<span class="kw">def</span> validate(overrides, predicates: Iterable[str]) <span class="ret">-&gt; None</span>
+<span class="kw">def</span> apply(edges: list[dict], resolve: Callable[[str], str | None],
+          overrides = OVERRIDES,
+          predicates: Iterable[str] | None = None) <span class="ret">-&gt; tuple[list[dict], OverrideReport]</span></div>
+    <div class="body">
+      <p>Single-edge corrections, written by article title rather than page id so a person can
+      read them. For facts that are wrong at the source and cannot be expressed as a field
+      mapping: WikiShia lists Nahj al-balagha under a <em>calligrapher's</em> <code>works</code>
+      because he transcribed it, which no range check can catch &mdash; the types are right and
+      only the meaning is wrong.</p>
+      <p>An override with no <code>note</code>, an unknown predicate, or an <code>add</code>
+      without an object is rejected at build time. One that stops matching is reported as
+      <strong>stale</strong> by <code>kg build</code> and <code>kg stats</code>.</p>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <span class="tag">Never hand-edit data/kg/*.jsonl or data/kg.db</span>
+    <p>Both are generated and gitignored: an edit there is destroyed by the next build and was
+    never reviewable. That is why <code>overrides.py</code> lives in <code>src/</code>. Use
+    <code>ontology.py</code> when a whole field is mis-mapped, and <code>overrides.py</code> when
+    exactly one edge is wrong.</p>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> clause(edge: dict, predicates: dict) <span class="ret">-&gt; tuple[str, str] | None</span>
+<span class="kw">def</span> flipped(edge: dict, predicates: dict) <span class="ret">-&gt; tuple[str, str] | None</span>
+<span class="kw">def</span> sentence(subject: str, edge: dict, predicates: dict) <span class="ret">-&gt; str | None</span></div>
+    <div class="body">
+      <p><code>shiaqa.kg.render</code> &mdash; turning one edge back into one English clause, in
+      one place with two callers (<code>KgStore.facts</code> and path narration).
+      <code>clause</code> returns <code>None</code> when the sentence cannot start at the anchor:
+      an unmapped predicate, an unlabelled far end, or an inbound edge whose predicate declares
+      no inverse. <code>flipped</code> is the fallback that starts the sentence at the other
+      end instead.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> write(out_dir: Path, kinds: tuple[str, ...] = ("explorer", "schema"),
+          settings: Settings | None = None) <span class="ret">-&gt; dict[str, Path]</span>
+<span class="kw">def</span> explorer_payload(kg, onto=None, settings=None) <span class="ret">-&gt; dict</span>
+<span class="kw">def</span> schema_payload(kg, onto=None) <span class="ret">-&gt; dict</span>
+<span class="kw">def</span> render(template: str, payload: dict, title: str) <span class="ret">-&gt; str</span></div>
+    <div class="body">
+      <p><code>shiaqa.kg.viz</code> &mdash; self-contained HTML views. Each page embeds its own
+      data (the typed graph trims to about 540&nbsp;KB), so it opens from disk with no server.
+      Both views collapse reciprocal edges the way <code>KgStore.facts()</code> does.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> parse_one(text: str) <span class="ret">-&gt; DateValue</span>
+<span class="kw">def</span> parse_field(raw_value: str, resolved_titles: list[str]) <span class="ret">-&gt; DateValue</span>
+
+<span class="kw">@dataclass(frozen=True) class</span> DateValue
+    ah_year / ah_month / ah_day / ce_year / ce_month / ce_day / bh_year
+    <span class="kw">@property</span> node_id <span class="ret">-&gt; str</span>;  <span class="kw">@property</span> label <span class="ret">-&gt; str</span>;  <span class="kw">def</span> as_node() <span class="ret">-&gt; dict</span></div>
+    <div class="body">
+      <p><code>shiaqa.kg.dates</code> &mdash; dates in whichever calendars the source supplied,
+      Hijri, Gregorian or Before Hijra. An empty <code>DateValue</code> is falsy and has no node
+      id; check <code>bool(dv)</code> before asking for one.</p>
+    </div>
+  </div>
+</section>
+
+<section id="python4">
+  <h3><span class="num">7.9</span>shiaqa.ingest and shiaqa.wiki</h3>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> build_text_index(settings=None, store=None) <span class="ret">-&gt; IndexReport</span>   <span class="c"># DESTRUCTIVE</span>
+<span class="kw">def</span> build_vectors(settings=None, store=None, limit: int | None = None) <span class="ret">-&gt; IndexReport</span>
+<span class="kw">def</span> prune(settings=None, store=None) <span class="ret">-&gt; dict[str, int]</span>
+<span class="kw">def</span> is_navigation_page(raw: dict) <span class="ret">-&gt; bool</span></div>
+    <div class="body">
+      <p><code>shiaqa.ingest.pipeline</code>. Phase 1 calls <code>Store.reset()</code> first
+      &mdash; that is the destructive command of &sect;3.4. Phase 2 processes only chunks without
+      a vector, so it is resumable, and it raises <code>RuntimeError</code> up front if Ollama is
+      not healthy rather than failing partway through. <code>IndexReport</code> carries
+      <code>pages, skipped, chunks, embedded, seconds</code>.</p>
+      <p>Disambiguation and navigation pages are skipped at index time: they are lists of links
+      with no prose, and they outrank real articles on title match.</p>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <span class="tag">The embedding text format is duplicated</span>
+    <p><code>build_vectors()</code> reconstructs the context header inline rather than calling
+    <code>Chunk.embed_text()</code>, because it reads database rows, not <code>Chunk</code>
+    objects. If you change one, change the other &mdash; otherwise stored vectors no longer match
+    the representation queries are embedded against, and retrieval degrades with no error.</p>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> clean_page(raw: dict) <span class="ret">-&gt; CleanPage</span>
+<span class="kw">def</span> infobox_as_text(title: str, infobox: dict[str, str]) <span class="ret">-&gt; str</span>
+
+<span class="kw">@dataclass class</span> CleanPage
+    pageid, ns, title, url, revid, timestamp, summary
+    sections: list[Section];  infobox: dict[str, str]
+    categories: list[str];  pointers: list[str];  citations: list[str]
+    <span class="kw">@property</span> char_len <span class="ret">-&gt; int</span></div>
+    <div class="body">
+      <p><code>shiaqa.ingest.clean</code> &mdash; wikitext to structured prose. A
+      <code>Section</code> is <code>path, level, text</code> with a <code>label</code> property
+      that joins the path with <code>&gt;</code>, or <code>"Summary"</code> for the lead.</p>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <span class="tag">Always parse wikitext through clean._parse()</span>
+    <p>Never a bare <code>mwparserfromhell.parse()</code>. <code>_parse</code> sets
+    <code>skip_style_tags=True</code>; transliterated Arabic leaves the italic state machine
+    unbalanced, after which the parser silently stops recognising <em>every</em> template in the
+    block and infoboxes leak into prose as raw markup.</p>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> chunk_page(page: CleanPage, settings: Settings | None = None) <span class="ret">-&gt; list[Chunk]</span>
+<span class="kw">def</span> estimate_tokens(text: str) <span class="ret">-&gt; int</span>
+<span class="kw">def</span> chunk_stats(chunks: list[Chunk]) <span class="ret">-&gt; dict[str, float]</span>
+
+<span class="kw">@dataclass class</span> Chunk
+    page_id, ns, title, url, section, ordinal
+    kind: "summary" | "infobox" | "body";  text: str;  tokens: int
+    <span class="kw">@property</span> context_header <span class="ret">-&gt; str</span>
+    <span class="kw">def</span> embed_text() <span class="ret">-&gt; str</span>;  <span class="kw">def</span> cite_label() <span class="ret">-&gt; str</span></div>
+    <div class="body">
+      <p><code>shiaqa.ingest.chunk</code> &mdash; section-aware chunking. Each chunk is embedded
+      with a context header (<code>Article — Section &gt; Subsection</code>), because passages on
+      this wiki constantly say &ldquo;he was martyred at Karbala&rdquo; without naming whose
+      biography it is.</p>
+      <p><code>estimate_tokens</code> divides by <code>CHARS_PER_TOKEN = 2.6</code>, measured
+      against llama3.2 and qwen2.5 on this corpus rather than the usual ~4: transliteration with
+      diacritics tokenises far denser. Do not &ldquo;correct&rdquo; it.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">async def</span> fetch_all(settings=None, namespaces: list[int] | None = None,
+                    force: bool = False) <span class="ret">-&gt; dict[int, int]</span>
+<span class="kw">async def</span> fetch_namespace(client, namespace, settings, force=False) <span class="ret">-&gt; int</span>
+<span class="kw">def</span> read_raw(settings=None, namespaces=None) <span class="ret">-&gt; Iterator[dict]</span>
+<span class="kw">def</span> raw_counts(settings=None) <span class="ret">-&gt; dict[int, int]</span>
+<span class="kw">def</span> raw_path(settings, namespace: int) <span class="ret">-&gt; Path</span>
+<span class="kw">def</span> load_redirects(settings=None) <span class="ret">-&gt; dict[str, str]</span>
+<span class="kw">def</span> load_aliases(settings=None) <span class="ret">-&gt; dict[str, list[str]]</span></div>
+    <div class="body">
+      <p><code>shiaqa.wiki.fetch</code>. Each namespace is written to a
+      <code>.jsonl.part</code> file and renamed on completion, so an interrupted fetch never
+      leaves a half-file that looks complete. <code>load_redirects</code> maps redirect title to
+      target; <code>load_aliases</code> inverts that into target to alias list, which is what
+      feeds the title channel.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> WikiClient(settings: Settings | None = None)      <span class="c"># async context manager</span>
+    <span class="kw">async def</span> get(**params) <span class="ret">-&gt; dict</span>
+    <span class="kw">async def</span> paged(**params) <span class="ret">-&gt; AsyncIterator[dict]</span>
+    <span class="kw">async def</span> list_pages(namespace: int) <span class="ret">-&gt; list[dict]</span>
+    <span class="kw">async def</span> fetch_batch(titles: list[str]) <span class="ret">-&gt; list[dict]</span>
+    <span class="kw">async def</span> redirect_map(namespace: int = 0) <span class="ret">-&gt; dict[str, str]</span>
+
+<span class="kw">class</span> WikiError(RuntimeError)</div>
+    <div class="body">
+      <p><code>shiaqa.wiki.client</code>. Identifies itself with a contact address, serialises
+      requests, sleeps between calls and honours <code>maxlag</code>. <code>fetch_batch</code>
+      respects the 50-title anonymous API cap. Do not parallelise it.</p>
+    </div>
+  </div>
+
+  <h3><span class="num">7.10</span>shiaqa.embed and shiaqa.rag.prompt</h3>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">class</span> Embedder(settings: Settings | None = None)
+    <span class="kw">def</span> embed_documents(texts: Sequence[str]) <span class="ret">-&gt; list[list[float]]</span>
+    <span class="kw">def</span> embed_query_sync(text: str) <span class="ret">-&gt; list[float]</span>
+    <span class="kw">async def</span> embed_query(text: str) <span class="ret">-&gt; list[float]</span>
+    <span class="kw">def</span> health() <span class="ret">-&gt; tuple[bool, str]</span>
+    <span class="kw">def</span> close() <span class="ret">-&gt; None</span>;  <span class="kw">async def</span> aclose() <span class="ret">-&gt; None</span></div>
+    <div class="body">
+      <p>Embeddings via a local Ollama, POSTed to <code>/api/embed</code>. Vectors are
+      L2-normalised on the way in, which is what makes <code>sqlite-vec</code>'s Euclidean
+      ranking identical to the cosine ranking <code>nomic-embed-text</code> is trained for.</p>
+      <p>The model is asymmetric: documents get <code>embed_doc_prefix</code>, queries get
+      <code>embed_query_prefix</code>. Mixing them silently costs accuracy, which is why the two
+      call sites are separate methods rather than one with a flag. <code>health()</code> returns
+      <code>(False, reason)</code> when Ollama is unreachable or the embedding model is not
+      pulled.</p>
+    </div>
+  </div>
+
+  <div class="sig">
+    <div class="decl"><span class="kw">def</span> build_messages(question: str, context: str) <span class="ret">-&gt; list[dict[str, str]]</span>
+
+SYSTEM: str;  USER_TEMPLATE: str;  NO_CONTEXT: str</div>
+    <div class="body">
+      <p><code>shiaqa.rag.prompt</code>. Two constraints shape this prompt. The generator is a
+      3B or 7B model on CPU, so the instructions are short, concrete and positively phrased.
+      And WikiShia is a confessional (Twelver Shia) encyclopaedia, so the system prompt
+      deliberately instructs attribution &mdash; &ldquo;According to WikiShia&hellip;&rdquo;
+      &mdash; rather than neutral assertion. <strong>Preserve that framing in any user-facing
+      output you build on top of this.</strong></p>
+      <p>The rules also require citing an excerpt number after each claim, saying plainly when
+      the excerpts do not contain the answer, keeping dates in the form the excerpts use, and
+      answering in the question's language.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ====================== 8. CONFIGURATION ====================== -->
+<section class="part" id="config">
+  <h2><span class="num">8</span>Configuration reference</h2>
+
+  <p class="lede">Every field of <code>Settings</code>, its default, and what changing it costs.
+  Override any of them with a <code>SHIAQA_</code>-prefixed environment variable or a line in
+  <code>.env</code>.</p>
+
+  <pre><code>SHIAQA_TOP_K_FINAL=8 .venv/bin/shiaqa search "..."      <span class="c"># one call</span>
+echo "SHIAQA_GEN_DEFAULT_PROFILE=quality" &gt;&gt; .env        <span class="c"># every call</span></code></pre>
+
+  <p>Prefer adding a setting here over hard-coding a constant. Note that
+  <code>get_settings()</code> is <code>lru_cache</code>d, so environment changes made after the
+  first call within one process have no effect.</p>
+
+  <h3><span class="num">8.1</span>Data source and storage</h3>
+
+  <table>
+    <thead><tr><th style="width:33%">Field</th><th style="width:33%">Default</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>wiki_api</code></td><td class="wrap"><code>https://en.wikishia.net/w/api.php</code></td><td>MediaWiki endpoint.</td></tr>
+      <tr><td><code>wiki_view_base</code></td><td class="wrap"><code>https://en.wikishia.net/view/</code></td><td>Base for the citation URLs.</td></tr>
+      <tr><td><code>namespaces</code></td><td><code>[0, 3000, 14]</code></td><td>Articles, <code>Text:</code> sources, categories.</td></tr>
+      <tr><td><code>user_agent</code></td><td class="wrap">identifies the client + contact</td><td>Operators ask for a contact address. Keep it honest.</td></tr>
+      <tr><td><code>request_delay</code></td><td><code>0.35</code></td><td>Seconds between API calls.</td></tr>
+      <tr><td><code>maxlag</code></td><td><code>5</code></td><td>Back off when the wiki's replicas fall behind.</td></tr>
+      <tr><td><code>batch_titles</code></td><td><code>50</code></td><td>API cap for anonymous users.</td></tr>
+      <tr><td><code>data_dir</code></td><td><code>&lt;project&gt;/data</code></td><td><code>raw_dir</code>, <code>db_path</code>, <code>kg_dir</code>, <code>kg_db_path</code> all follow it.</td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="num">8.2</span>Models</h3>
+
+  <table>
+    <thead><tr><th style="width:33%">Field</th><th style="width:33%">Default</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>ollama_host</code></td><td class="wrap"><code>http://127.0.0.1:11434</code></td><td></td></tr>
+      <tr><td><code>embed_model</code></td><td><code>nomic-embed-text</code></td><td>Changing it invalidates every stored vector.</td></tr>
+      <tr><td><code>embed_dim</code></td><td><code>768</code></td><td>Must match the model; fixes the <code>vec0</code> table width.</td></tr>
+      <tr><td><code>embed_doc_prefix</code></td><td><code>"search_document: "</code></td><td rowspan="2">The model is asymmetric. Mixing the two silently costs accuracy.</td></tr>
+      <tr><td><code>embed_query_prefix</code></td><td><code>"search_query: "</code></td></tr>
+      <tr><td><code>embed_batch</code></td><td><code>16</code></td><td>Texts per <code>/api/embed</code> call.</td></tr>
+      <tr><td><code>gen_model_fast</code></td><td><code>llama3.2:3b</code></td><td>~14 s per answer.</td></tr>
+      <tr><td><code>gen_model_quality</code></td><td class="wrap"><code>qwen2.5:7b-instruct-q4_K_M</code></td><td>~27 s per answer.</td></tr>
+      <tr><td><code>gen_default_profile</code></td><td><code>fast</code></td><td>Used when a request names no profile.</td></tr>
+      <tr><td><code>gen_num_ctx</code></td><td><code>8192</code></td><td>Ollama context window.</td></tr>
+      <tr><td><code>gen_temperature</code></td><td><code>0.2</code></td><td></td></tr>
+      <tr><td><code>gen_max_tokens</code></td><td><code>700</code></td><td>Hard cap on answer length.</td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="num">8.3</span>Chunking</h3>
+
+  <table>
+    <thead><tr><th style="width:33%">Field</th><th style="width:16%">Default</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>chunk_target_tokens</code></td><td><code>380</code></td><td rowspan="4">Token counts are estimated at 2.6 characters per token, measured on this corpus. Changing any of these requires a full reindex, embeddings included.</td></tr>
+      <tr><td><code>chunk_max_tokens</code></td><td><code>620</code></td></tr>
+      <tr><td><code>chunk_overlap_tokens</code></td><td><code>60</code></td></tr>
+      <tr><td><code>chunk_min_tokens</code></td><td><code>25</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="num">8.4</span>Retrieval</h3>
+
+  <table>
+    <thead><tr><th style="width:33%">Field</th><th style="width:16%">Default</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>top_k_vector</code></td><td><code>30</code></td><td>Candidates from the dense channel.</td></tr>
+      <tr><td><code>top_k_bm25</code></td><td><code>30</code></td><td>Candidates from BM25.</td></tr>
+      <tr><td><code>top_k_final</code></td><td><code>6</code></td><td>Passages kept after fusion.</td></tr>
+      <tr><td><code>rrf_k</code></td><td><code>60</code></td><td>RRF constant for the two long, noisy channels.</td></tr>
+      <tr><td><code>weight_vector</code></td><td><code>1.0</code></td><td></td></tr>
+      <tr><td><code>weight_bm25</code></td><td><code>1.0</code></td><td></td></tr>
+      <tr><td><code>weight_title</code></td><td><code>1.4</code></td><td>Highest: on a wiki, a question that names an article is usually answered by it.</td></tr>
+      <tr><td><code>rrf_k_title</code></td><td><code>20</code></td><td>Smaller because the channel is short and precision-ordered. At 60, a fact box at title-rank 1 lost to mid-list chunks.</td></tr>
+      <tr><td><code>title_pages</code></td><td><code>4</code></td><td>Named articles considered.</td></tr>
+      <tr><td><code>title_chunks_per_page</code></td><td><code>3</code></td><td></td></tr>
+      <tr><td><code>context_token_budget</code></td><td><code>2600</code></td><td>On CPU, prompt length dominates latency.</td></tr>
+      <tr><td><code>max_chunks_per_page</code></td><td><code>3</code></td><td>Stops one long article owning the context window.</td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="num">8.5</span>Knowledge graph</h3>
+
+  <table>
+    <thead><tr><th style="width:33%">Field</th><th style="width:16%">Default</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>kg_enabled</code></td><td><code>False</code></td><td>Forces the graph open and warns when <code>kg.db</code> is missing. The graph is used anyway whenever <code>weight_graph &gt; 0</code>.</td></tr>
+      <tr><td><code>weight_graph</code></td><td><code>0.8</code></td><td>Mid-plateau: 0.5, 0.8 and 1.0 score identically. <code>0.0</code> makes retrieval byte-identical to the pre-graph system; <code>2.0</code> drowns the other three channels.</td></tr>
+      <tr><td><code>rrf_k_graph</code></td><td><code>20</code></td><td>Same reasoning as <code>rrf_k_title</code>.</td></tr>
+      <tr><td><code>kg_neighbour_pages</code></td><td><code>6</code></td><td>Articles the channel may contribute.</td></tr>
+      <tr><td><code>kg_chunks_per_page</code></td><td><code>2</code></td><td></td></tr>
+      <tr><td><code>kg_facts_in_context</code></td><td><code>False</code></td><td>A <code>[KG]</code> facts block mostly restates articles the title channel already retrieved.</td></tr>
+      <tr><td><code>kg_facts_max</code></td><td><code>12</code></td><td></td></tr>
+      <tr><td><code>kg_max_hops</code></td><td><code>2</code></td><td><code>1</code> is byte-identical to the pre-multi-hop system, by keeping that branch on the old call.</td></tr>
+      <tr><td><code>kg_beam_width</code></td><td><code>24</code></td><td>Frontier cap per level &mdash; a precision device, not a performance one.</td></tr>
+      <tr><td><code>kg_path_limit</code></td><td><code>12</code></td><td>Paths kept per expansion.</td></tr>
+      <tr><td><code>kg_hub_degree_max</code></td><td><code>40</code></td><td>A node above this may end a path but never continue one.</td></tr>
+      <tr><td><code>kg_connect_max_hops</code></td><td><code>3</code></td><td>Longest route between two named articles.</td></tr>
+      <tr><td><code>kg_chains_in_context</code></td><td><code>True</code></td><td>On by default: a chain carries a relation that exists in <em>no</em> chunk. Inert when <code>kg_max_hops</code> is 1.</td></tr>
+      <tr><td><code>kg_chains_max</code></td><td><code>4</code></td><td>Lines in the <code>[KG-PATH]</code> block.</td></tr>
+    </tbody>
+  </table>
+
+  <h3><span class="num">8.6</span>Question decomposition</h3>
+
+  <table>
+    <thead><tr><th style="width:33%">Field</th><th style="width:16%">Default</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>decompose</code></td><td><code>False</code></td><td>Off because it is the only part of multi-hop that costs model calls.</td></tr>
+      <tr><td><code>decompose_max_parts</code></td><td><code>3</code></td><td>Sub-questions kept.</td></tr>
+      <tr><td><code>decompose_num_predict</code></td><td><code>160</code></td><td>Output cap for the splitting call.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ====================== 9. EVAL ====================== -->
+<section class="part" id="eval">
+  <h2><span class="num">9</span>Evaluating retrieval changes</h2>
+
+  <p class="lede">Run this after any retrieval change. It is the only thing standing between a
+  plausible idea and a quiet regression.</p>
+
+  <pre><code>.venv/bin/python eval/run_eval.py --k 6
+.venv/bin/python eval/run_eval.py --k 6 --sweep          <span class="c"># grid-search fusion settings</span>
+.venv/bin/python eval/run_eval.py --k 6 --kg             <span class="c"># graph channel off vs on</span>
+.venv/bin/python eval/run_eval.py --k 6 --hops           <span class="c"># one hop vs two, all three sets</span>
+.venv/bin/python eval/run_eval.py --k 6 --kg --weight-graph 1.0</code></pre>
+
+  <h3><span class="num">9.1</span>The three question sets</h3>
+
+  <table>
+    <thead><tr><th style="width:32%">File</th><th style="width:10%">n</th><th>What it measures</th></tr></thead>
+    <tbody>
+      <tr><td><code>eval/questions.yaml</code></td><td>15</td>
+          <td>Regression. Each names the article(s) that must be retrieved; five also assert a string that must appear in the assembled context.</td></tr>
+      <tr><td><code>eval/questions_kg.yaml</code></td><td>10</td>
+          <td>Questions that turn on a <em>relation</em> rather than a passage &mdash; the case the flat channels are worst at.</td></tr>
+      <tr><td><code>eval/questions_multihop.yaml</code></td><td>12</td>
+          <td>Questions needing <em>two</em> typed hops. <code>expect</code> names only the far article, never the seed.</td></tr>
+    </tbody>
+  </table>
+
+  <p>That last design rule is what makes the multi-hop set measure anything. Naming the seed as
+  well would read recall@6 1.00 at every setting, because scoring takes any match in
+  <code>expect</code> and the title channel finds the seed at rank 1.</p>
+
+  <h3><span class="num">9.2</span>Metrics, and the one that lies</h3>
+
+  <p>The suite reports recall@k, MRR, answer-in-context and median retrieval latency. The
+  metric that matters most is <strong>answer-in-context</strong>: retrieving the right
+  <em>article</em> is worthless if the chunk holding the fact never reaches the prompt.</p>
+
+  <p><code>--hops</code> reports answer-in-context <strong>twice</strong> &mdash; over the whole
+  prompt, and over the retrieved passages with the <code>[KG]</code> and <code>[KG-PATH]</code>
+  blocks stripped. The second exists because the first stops measuring anything once chains are
+  on: a chain stating &ldquo;al-Radi was taught by al-Mufid, who was taught by al-Saduq&rdquo;
+  trivially satisfies a search for &ldquo;al-Saduq&rdquo;. Reading the gap between the two
+  separates <em>we retrieved the right passage</em> from <em>we asserted the fact</em>.</p>
+
+  <h3><span class="num">9.3</span>Current baseline</h3>
+
+  <table>
+    <thead><tr><th style="width:26%">Set</th><th>recall@6 / MRR / answer-in-context</th></tr></thead>
+    <tbody>
+      <tr><td>Regression (15)</td><td><code>1.00 / 0.933 / 1.00</code>, ~109 ms median retrieval</td></tr>
+      <tr><td>Relational (10)</td><td><code>1.00 / 0.950 / 0.90</code></td></tr>
+      <tr><td>Multi-hop (12)</td><td>answer-in-context <code>0.75</code>; in-excerpts <code>0.50</code></td></tr>
+    </tbody>
+  </table>
+
+  <p>Read the multi-hop numbers honestly. Most of the gain from two hops is the chain block
+  putting the composed relation in the prompt. The retrieval gain is real but smaller, and
+  recall@6 barely moves &mdash; the far article still rarely wins a top-6 slot, because the seed
+  takes three of the six under <code>max_chunks_per_page</code> and nothing here ranks a
+  relation by whether the question actually asked about it. Do not tune
+  <code>weight_graph</code> against the answer-in-context figure; it is not measuring the
+  channel.</p>
+
+  <div class="box">
+    <span class="tag">Treat the sweep with suspicion</span>
+    <p>Fifteen questions are enough to catch a structural bug and not enough to justify
+    finely-tuned weights. The same applies to <code>HOP_DECAY</code>, <code>TIER_WEIGHT</code>
+    and <code>kg_hub_degree_max</code>, which are set from graph structure rather than fitted to
+    twelve questions. The current settings deviate from the defaults in exactly one parameter,
+    chosen because its effect held across the whole grid.</p>
+  </div>
+</section>
+
+<!-- ====================== 10. TROUBLESHOOTING ====================== -->
+<section class="part" id="trouble">
+  <h2><span class="num">10</span>Troubleshooting</h2>
+
+  <table>
+    <thead><tr><th style="width:36%">Symptom</th><th>Cause and fix</th></tr></thead>
+    <tbody>
+      <tr><td><code>/health</code> says <code>degraded</code></td>
+          <td>Either Ollama is unreachable / the embedding model is not pulled (see the <code>ollama</code> field), or embeddings are incomplete (see <code>vectors_progress</code>). Finish them with <code>shiaqa index --embed-only</code>.</td></tr>
+      <tr><td>Requests return <code>503</code></td>
+          <td>The lifespan handler has not finished building the engine. Retry in a moment.</td></tr>
+      <tr><td><code>cannot reach Ollama at&hellip;</code></td>
+          <td>Ollama is not running, or is on another host. Start it, or set <code>SHIAQA_OLLAMA_HOST</code>.</td></tr>
+      <tr><td><code>model &hellip; not pulled</code></td>
+          <td><code>ollama pull nomic-embed-text</code>.</td></tr>
+      <tr><td>Answers say nothing was found</td>
+          <td>No index, or the question uses spellings the corpus does not carry. Check <code>shiaqa status</code>, then try <code>shiaqa search</code> to see what retrieval is actually returning.</td></tr>
+      <tr><td>Retrieval got worse after a change</td>
+          <td>Run <code>eval/run_eval.py --k 6</code> against the regression set before doing anything else. If the change touched the embedding text format, both copies must match (&sect;7.9).</td></tr>
+      <tr><td><code>kg is enabled but data/kg.db is missing</code></td>
+          <td><code>shiaqa kg build</code>. It takes about fifteen seconds and cannot disturb the index.</td></tr>
+      <tr><td><code>shiaqa status</code> says the graph is stale</td>
+          <td>The raw cache is newer than <code>kg.db</code>. Rebuild the graph.</td></tr>
+      <tr><td><code>kg path</code> finds no route</td>
+          <td>Often correct rather than a failure: routes through places and high-degree hubs are refused on purpose. Try <code>kg chain</code> on each end, or raise <code>--hops</code>.</td></tr>
+      <tr><td><code>OperationalError</code> deleting chunks</td>
+          <td><code>chunks_fts</code> is contentless. Use <code>Store.delete_page()</code>, never a bare <code>DELETE</code>.</td></tr>
+      <tr><td>Answers are slow</td>
+          <td>Expected: 14 s on <code>fast</code>, 27 s on <code>quality</code>, plus ~7 s for <code>--decompose</code>. Use <code>/ask/stream</code> so sources appear immediately, and keep <code>context_token_budget</code> tight.</td></tr>
+      <tr><td>Infoboxes appear as raw markup in a chunk</td>
+          <td>Wikitext was parsed without <code>skip_style_tags</code>. Always go through <code>clean._parse()</code>.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ====================== 11. LICENSING ====================== -->
+<section class="part" id="licence">
+  <h2><span class="num">11</span>Licensing and attribution</h2>
+
+  <p>The Apache-2.0 licence in this repository covers <strong>code only</strong>, not the
+  WikiShia content the tool downloads. WikiShia publishes no machine-readable licence &mdash;
+  its API <code>rightsinfo</code> is empty &mdash; so do not assume CC&nbsp;BY-SA for the corpus.
+  See <code>NOTICE</code> in the repository root before redistributing anything derived from the
+  fetched text.</p>
+
+  <p><code>data/</code> is gitignored and holds roughly 250&nbsp;MB: the raw wikitext cache, the
+  built index and the knowledge graph. Never commit it. Everything in it except the raw cache
+  can be re-derived offline; only <code>shiaqa fetch</code> needs the network.</p>
+
+  <div class="box">
+    <span class="tag">Attribution is a design requirement, not a default</span>
+    <p>WikiShia is a confessional (Twelver Shia) encyclopaedia. The system prompt deliberately
+    instructs attribution &mdash; &ldquo;According to WikiShia&hellip;&rdquo; &mdash; rather than
+    neutral assertion, and asks the model to note where the excerpts say Sunni and Shia accounts
+    differ. Preserve that framing in any interface built on this API.</p>
+  </div>
+
+  <p>Be a polite API client. <code>wiki/client.py</code> identifies itself with a contact
+  address, serialises its requests, honours <code>maxlag</code> and caches everything. Do not
+  parallelise the fetcher.</p>
+
+  <h3><span class="num">11.1</span>Where to look next</h3>
+
+  <table>
+    <thead><tr><th style="width:34%">File</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><code>README.md</code></td><td>Project overview, corpus statistics and the reasoning behind the retrieval design.</td></tr>
+      <tr><td><code>CLAUDE.md</code></td><td>Working notes for contributors: the destructive operations, the invariants that fail silently, and how each tuned number was chosen.</td></tr>
+      <tr><td><code>src/shiaqa/config.py</code></td><td>Every tunable, with the evidence for its default in the comments.</td></tr>
+      <tr><td><code>src/shiaqa/kg/ontology.py</code></td><td>The 17 classes and 69 predicates, and the infobox fields each one claims.</td></tr>
+      <tr><td><code>data/kg/unmapped.jsonl</code></td><td>The curation worklist: infobox fields carrying links no predicate claims yet.</td></tr>
+      <tr><td><code>tests/</code></td><td>171 offline tests. The fastest way to learn what a function guarantees.</td></tr>
+    </tbody>
+  </table>
+
+  <p style="margin-top:10mm; padding-top:3mm; border-top:1px solid var(--rule); font-size:9pt; color:var(--muted);">
+  <em>ShiaQAService user manual, version 0.1.0. Generated from
+  <code>doc/user-manual.html</code>; signatures verified against the source at the time of
+  writing. If a signature here disagrees with the code, the code is right &mdash; and this file
+  needs a line.</em></p>
+</section>
+
+</body>
+</html>
